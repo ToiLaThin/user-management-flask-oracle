@@ -1,0 +1,5 @@
+Flask
+oracledb
+flask-sqlalchemy
+ipykernel
+pandas
