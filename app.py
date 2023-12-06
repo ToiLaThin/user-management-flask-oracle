@@ -12,7 +12,7 @@ def create_app():
     """
     app = Flask(__name__)
     # will create all table registered in database
-    with OracleDb("dummy", "dummy") as db:
+    with OracleDb("sys", "123") as db:
         Base.metadata.create_all(db.engine)
         print(db) # print result of __repr__ method
     print("Created all table in database")

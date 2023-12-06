@@ -15,19 +15,24 @@ class OracleDb:
     Return: instance which hold the engine connect to database
     """
 
-    def __init__(self, username, password):
-        self.username = username
+    def __init__(self, username:str, password):
+        self.username = username.upper()
         self.password = password
         self.host = config.DATABASE_HOST
         self.port = config.DATABASE_PORT
         self.sid = config.DATABASE_SID
         self.engine = None
         self.conn = None
-        self.conn_string = (
-            'oracle+oracledb://{username}:{password}@' + self.host + ':' + \
-            str(self.port) + '/' + self.sid
-        )
-
+        if username == "sys":
+            self.conn_string = (
+                'oracle+oracledb://{username}:{password}@' + self.host +
+                ':' + str(self.port) + '/' + self.sid + '?mode=sysdba'
+            )
+        else:
+            self.conn_string = (
+                'oracle+oracledb://C##{username}:{password}@' + self.host + ':' + \
+                str(self.port) + '/' + self.sid
+            )
     def connect(self):
         """sumary_line
         This is method connect to database, will set the conn and the engine
