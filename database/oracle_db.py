@@ -21,6 +21,7 @@ class OracleDb:
         self.host = config.DATABASE_HOST
         self.port = config.DATABASE_PORT
         self.sid = config.DATABASE_SID
+        self.service_name = config.DATABASE_SERVICE_NAME
         self.engine = None
         self.conn = None
         if username == "sys":
@@ -30,8 +31,8 @@ class OracleDb:
             )
         else:
             self.conn_string = (
-                'oracle+oracledb://C##{username}:{password}@' + self.host + ':' + \
-                str(self.port) + '/' + self.sid
+                'oracle+oracledb://U_{username}:{password}@' + self.host + ':' + \
+                str(self.port) + '/?service_name=' + self.service_name
             )
     def connect(self):
         """sumary_line
@@ -48,6 +49,7 @@ class OracleDb:
                 echo=True
             )
             self.conn = self.engine.connect()
+            print(self.conn_string.format(username=self.username,password=self.password))
             print('Connected to Oracle DB!')
         except Exception as e:
             self.conn = None
