@@ -26,8 +26,10 @@ class OracleDb:
         self.conn = None
         if username == "sys":
             self.conn_string = (
+                # 'oracle+oracledb://{username}:{password}@' + self.host +
+                # ':' + str(self.port) + '/' + self.sid + '?mode=sysdba' #even sys need to connect to freepdb1 to be able to select the right users
                 'oracle+oracledb://{username}:{password}@' + self.host +
-                ':' + str(self.port) + '/' + self.sid + '?mode=sysdba'
+                ':' + str(self.port) + '/?service_name=' + self.service_name + '&mode=sysdba'
             )
         else:
             self.conn_string = (

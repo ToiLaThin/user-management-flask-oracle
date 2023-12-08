@@ -41,6 +41,14 @@
           </select>
         </div>
         
+        <div class="form-group">  
+          <label for="role"><b>Choose Role</b></label>
+          <select name="r_name">
+            {% for r in role_list %}          
+              <option value="{{ r }}">{{ r }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <button type="submit">Create account</button>
       </div>
     

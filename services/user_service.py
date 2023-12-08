@@ -3,7 +3,7 @@ from database.oracle_db import OracleDb
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from utils.queries import SET_SESSION_CONTAINER_QUERY
-def add_user(username: str, password_hashed: str, tablespace_name: str, quota: int, profile_name: str):
+def add_user(username: str, password_hashed: str, tablespace_name: str, quota: int, profile_name: str, role_name: str):
     """Add a new user."""
     with OracleDb("sys", "123") as db:
         db.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
@@ -15,8 +15,10 @@ def add_user(username: str, password_hashed: str, tablespace_name: str, quota: i
             DEFAULT TABLESPACE {tablespace_name} QUOTA {quota}M ON {tablespace_name}
             PROFILE {profile_name}
         """
+        grant_selected_role = f"GRANT {role_name} TO U_{username.upper()}"
         grant_connect_query = f"GRANT CREATE SESSION TO U_{username.upper()}"
         db.conn.execute(text(create_user_query))
+        db.conn.execute(text(grant_selected_role))
         db.conn.execute(text(grant_connect_query))
         db.conn.commit()
         print(f"Added a user {username}")
