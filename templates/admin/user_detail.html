@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2 Column Layout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        .row { display: flex; }
+        .column {
+            flex: 50%;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h3>Privs Through Role: {{userrole}}</h3>
+    <div class="row">
+        <div class="column">
+            <h4>Obj Privs</h4>
+            {% for role_obj_priv in user_role_tab_privs_arr %}
+                <p style="color: red;">{{ role_obj_priv }}</p>
+            {% endfor %}
+            {% for role_obj_priv_not_applied in user_role_tab_privs_arr_not_applied %}
+                <p>{{ role_obj_priv_not_applied }}</p>
+            {% endfor %}
+        </div>
+        <div class="column">
+            <h4>Sys Privs</h4>
+            {% for role_sys_priv in user_role_sys_privs_arr %}
+                <p style="color: red;">{{ role_sys_priv }}</p>
+            {% endfor %}
+            {% for role_sys_priv_not_applied in user_role_sys_privs_arr_not_applied %}
+                <p>{{ role_sys_priv_not_applied }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+    <h3>Privs Directly to user</h3>
+    <div class="row">
+        <div class="column">
+            <h4>Obj Privs</h4>
+            {% for user_obj_priv in user_tab_privs_arr %}
+                <div>
+                    <span class="tab_priv">{{ user_obj_priv }}</span>
+                    <input checked type="checkbox" value="{{ user_obj_priv }}"></input>
+                </div>
+            {% endfor %}
+            {% for user_obj_priv_not_applied in user_tab_privs_arr_not_applied %}
+                <div>
+                    <span class="tab_priv">{{ user_obj_priv_not_applied }}</span>
+                    <input type="checkbox" value="{{ user_obj_priv_not_applied }}"></input>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="column">
+            <h4>Sys Privs</h4>
+            {% for user_sys_priv in user_sys_privs_arr %}
+                <div>
+                    <span class="tab_priv">{{ user_sys_priv }}</span>
+                    <input checked type="checkbox" value="{{ user_sys_priv }}"></input>
+                </div>
+            {% endfor %}
+            {% for user_sys_priv_not_applied in user_sys_privs_arr_not_applied %}
+                <div>
+                    <span class="tab_priv">{{ user_sys_priv_not_applied }}</span>
+                    <input type="checkbox" value="{{ user_sys_priv_not_applied }}"></input>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <button>Apply</button>
+
+    <br>
+    <h3>Profile: {{userpf}}</h3>
+    {% for key, value in pf_resource_dict.items() %}
+        <p>{{ key }}: {{ value }}</p>
+    {% endfor %}
+    <script>
+        function applySelectedPrivs() {
+            let all_checked_privs = [];
+            let all_user_priv_checked_checkboxs = document.querySelectorAll('input[type="checkbox"]:checked');
+            all_user_priv_checked_checkboxs.forEach(function(checkbox) {
+                all_checked_privs.push(checkbox.value);
+            });
+            console.log(all_checked_privs);
+            console.log({{user}})
+            fetch("http://localhost:5000/update_privs_user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "username": "{{username}}",
+                    "userpf": "{{userpf}}",
+                    "userrole": "{{userrole}}",
+                    "all_checked_privs": all_checked_privs
+                })
+            }).then(function(response) {
+                alert("Privs Updated");
+                // return response.json(); //the data to function(data)
+            })
+            // .then(function(data) {
+            //     console.log(data);
+            // });
+        }
+
+
+
+        document.querySelector('button').addEventListener('click', applySelectedPrivs);
+    </script>
+</body>
+</html>

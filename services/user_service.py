@@ -3,15 +3,15 @@ from database.oracle_db import OracleDb
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from utils.queries import SET_SESSION_CONTAINER_QUERY
-def add_user(username: str, password_hashed: str, tablespace_name: str, quota: int, profile_name: str, role_name: str):
+def add_user(username: str, password: str, tablespace_name: str, quota: int, profile_name: str, role_name: str):
     """Add a new user."""
     with OracleDb("sys", "123") as db:
         db.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
         # identified by values to store hashed password
         # wrap username in "" to avoid error ORA-65094: invalid local user or role name, and user in pdb cannot have c## prefix
-        print("Reduced length of password:", password_hashed[:25])
+        print("Reduced length of password:", password[:25])
         create_user_query = f"""
-            CREATE USER "U_{username.upper()}" IDENTIFIED BY "{password_hashed}"
+            CREATE USER "U_{username.upper()}" IDENTIFIED BY "{password}"
             DEFAULT TABLESPACE {tablespace_name} QUOTA {quota}M ON {tablespace_name}
             PROFILE {profile_name}
         """

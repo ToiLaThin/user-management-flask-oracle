@@ -56,8 +56,7 @@ class OracleDb:
         except Exception as e:
             self.conn = None
             self.engine = None
-            print('Error: ', e)
-            exit(1)
+            raise e
     
     def close(self):
         """sumary_line

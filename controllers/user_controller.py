@@ -25,15 +25,25 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         password_hashed = generate_password_hash(password, method=HASHED_METHOD)
-        print("password:", password)
+        print("Password:", password)
         print("Hashed password:", password_hashed)
+
+        
         if username == "sys":
             singleton_auth_manager.login(username, password)
         else:
-            singleton_auth_manager.login(username, password_hashed)
-        singleton_auth_manager.db_instance.connect()
-        with singleton_auth_manager.db_instance.engine.connect() as conn:
-            role_result = conn.execute(text(SELECT_USER_ROLE_QUERY))
+            #can be changed to password_hashed to see it fail
+            singleton_auth_manager.login(username, password)
+        
+                
+        try: #if login failed , do not set the db_instance
+            singleton_auth_manager.db_instance.connect() 
+        except Exception as e:
+            singleton_auth_manager.logout()
+            return f"Login failed: {e}"
+        
+        with singleton_auth_manager.db_instance.engine.connect(): #login success
+            role_result = singleton_auth_manager.db_instance.conn.execute(text(SELECT_USER_ROLE_QUERY))
             for row in role_result:
                 print("From singleton:", row[0])
                 if row[0] == "DBA":
