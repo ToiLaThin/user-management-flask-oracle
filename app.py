@@ -9,6 +9,7 @@ from utils.queries import CREATE_ROLE_MANAGER_QUERY, CREATE_ROLE_EMPLOYEE_QUERY,
     DROP_ROLE_MANAGER_QUERY, DROP_ROLE_EMPLOYEE_QUERY, \
     DROP_TABLESPACE_MANAGER_QUERY, DROP_TABLESPACE_EMPLOYEE_QUERY
 
+from utils.globals import IdleTimeEnum, ConnectTimeEnum, SessionPerUserEnum
 from database.oracle_db import OracleDb
 # import all model to create table (must be imported)
 from models.user_model import User
@@ -46,8 +47,12 @@ def init_db():
             
         try:
             db.conn.execute(text(SET_RESOURCE_LIMIT_QUERY))
-            db.conn.execute(text(CREATE_PROFILE_MANAGER_QUERY))
-            db.conn.execute(text(CREATE_PROFILE_EMPLOYEE_QUERY))
+            db.conn.execute(text(CREATE_PROFILE_MANAGER_QUERY.format(session_per_user = SessionPerUserEnum.CUSTOM.value,\
+                                                                     connect_time = ConnectTimeEnum.CUSTOM.value, \
+                                                                     idle_time = IdleTimeEnum.CUSTOM.value)))
+            db.conn.execute(text(CREATE_PROFILE_EMPLOYEE_QUERY.format(session_per_user = SessionPerUserEnum.CUSTOM.value,\
+                                                                     connect_time = ConnectTimeEnum.CUSTOM.value, \
+                                                                     idle_time = IdleTimeEnum.CUSTOM.value)))
             db.conn.execute(text(CREATE_ROLE_MANAGER_QUERY))
             db.conn.execute(text(CREATE_ROLE_EMPLOYEE_QUERY))
             db.conn.execute(text(CREATE_TABLESPACE_QUERY.format(tablespace_name = "TBS_MANAGER")))

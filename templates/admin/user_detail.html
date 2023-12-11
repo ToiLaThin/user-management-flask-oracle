@@ -69,10 +69,22 @@
                     <input type="checkbox" value="{{ user_sys_priv_not_applied }}"></input>
                 </div>
             {% endfor %}
-        </div>
+        </div>        
     </div>
-    <button>Apply</button>
-
+    <button class="apply-btn">Apply</button>
+    <br>
+    <div>
+        <h3>Account Status: {{account_status}}</h3>
+        {% if account_status == 'LOCKED' %}
+            <button class="unlock-btn">
+                <a href="{{ url_for('blueprint.lock_unlock_user', astatus=account_status, username=username) }}">Unlock</a>
+            </button>
+        {% else %}
+            <button class="lock-btn">
+                <a href="{{ url_for('blueprint.lock_unlock_user', astatus=account_status, username=username) }}">Lock</a>
+            </button>
+        {% endif %}
+    </div>
     <br>
     <h3>Profile: {{userpf}}</h3>
     {% for key, value in pf_resource_dict.items() %}
@@ -109,7 +121,7 @@
 
 
 
-        document.querySelector('button').addEventListener('click', applySelectedPrivs);
+        document.querySelector('button.apply-btn').addEventListener('click', applySelectedPrivs);
     </script>
 </body>
 </html>

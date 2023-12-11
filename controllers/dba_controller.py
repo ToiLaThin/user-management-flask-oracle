@@ -1,9 +1,10 @@
-from flask import redirect, request, render_template, url_for
+from flask import flash, redirect, request, render_template, url_for
 import pandas as pd
 from prompt_toolkit import HTML
 from sqlalchemy import text
 from database.oracle_db import OracleDb
-from utils.globals import authentication_check_decorator, authorization_check_decorator, \
+from utils.globals import AccountStatusEnum, ConnectTimeEnum, IdleTimeEnum, SessionPerUserEnum, \
+            authentication_check_decorator, authorization_check_decorator, \
             DBA_ROLE_NAME, HASHED_METHOD, \
             singleton_auth_manager
 from utils.queries import SELECT_DBA_PROFILES_QUERY, SELECT_DBA_TABLESPACES_QUERY, SELECT_DBA_ROLES_QUERY, SET_SESSION_CONTAINER_QUERY
@@ -72,6 +73,9 @@ def delete_account():
 def list_users():
     """List all user accounts."""
     with singleton_auth_manager.db_instance.engine.connect():
+        # every time we reload the app, 
+        # the user lost the role granted by admin, 
+        # so next time this won't show any users, find how to fix this
         query = """
             SELECT USERNAME, ACCOUNT_STATUS, LOCK_DATE, CREATED, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE, PROFILE
                 , GRANTED_ROLE, ADMIN_OPTION
@@ -95,7 +99,11 @@ def detail_user():
         username = request.args.get('username')
         userpf = request.args.get('userpf')
         userrole = request.args.get('userrole')
-
+        account_status = request.args.get('account_status')
+        if account_status == AccountStatusEnum.LOCKED:
+            print("User account is locked")
+        else:
+            print("User account is open")
 
         with singleton_auth_manager.db_instance.engine.connect():
             singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
@@ -172,6 +180,8 @@ def detail_user():
                                , user_tab_privs_arr_not_applied=user_tab_privs_arr_not_applied\
                                , user_role_sys_privs_arr_not_applied=user_role_sys_privs_arr_not_applied\
                                , user_role_tab_privs_arr_not_applied=user_role_tab_privs_arr_not_applied\
+                               
+                               , account_status=account_status\
                             )
     
 
@@ -207,3 +217,119 @@ def update_privs_user():
                 userrole=userrole)
     )
 
+@authentication_check_decorator
+@authorization_check_decorator(DBA_ROLE_NAME)
+def lock_unlock_user(astatus: str, username: str):
+    """Lock or unlock a user account."""
+    username = username[2:] # remove U_ prefix
+    if astatus == AccountStatusEnum.LOCKED:
+        print("Locked. Unlocking user account")
+        query = f"ALTER USER U_{username} ACCOUNT UNLOCK"
+    else:
+        print("UnLocked. Locking user account")
+        query = f"ALTER USER U_{username} ACCOUNT LOCK"
+    with singleton_auth_manager.db_instance.engine.connect():
+        singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
+        singleton_auth_manager.db_instance.conn.execute(text(query))
+    return redirect(url_for('blueprint.list_users'))
+
+
+@authentication_check_decorator
+@authorization_check_decorator(DBA_ROLE_NAME)
+def list_profiles():
+    """List all profiles."""
+    with singleton_auth_manager.db_instance.engine.connect():
+        query = """
+            SELECT PROFILE, RESOURCE_NAME, LIMIT
+            FROM DBA_PROFILES WHERE REGEXP_LIKE (PROFILE, '^PF_.*$')
+        """
+        profile_result = singleton_auth_manager.db_instance.conn.execute(text(query))
+        profile_tuple_list = []
+        profile_dict = {} 
+        # value is list of tuples: (resource_name, limit)
+        resource_to_take_dict = {
+                'CONNECT_TIME': 1, 
+                'IDLE_TIME': 1,
+                'SESSIONS_PER_USER': 1
+        }
+        for row in profile_result:
+            pf_name = row[0]
+            if pf_name not in profile_dict.keys():
+                profile_dict[pf_name] = []
+        
+        # profile_dict = profile_dict.fromkeys(profile_set, [])
+        # https://stackoverflow.com/a/34010458 why append to one key will append to all keys
+        
+        # must query again to get the resource_name and limit, iterate over the result above cleared this 
+        profile_result = singleton_auth_manager.db_instance.conn.execute(text(query))
+        for row in profile_result:
+            pf_name = row[0]
+            resource_name = row[1]
+            limit = row[2]
+            if resource_to_take_dict.get(resource_name) != None: 
+                # only take the resource we want, row is (pf_name, resource_name, limit)
+                profile_tuple_list.append(row)
+                profile_dict[pf_name].append((resource_name, limit))
+
+        print(profile_dict)
+        return render_template('admin/profile_list.html', \
+                               profile_tuple_list=profile_tuple_list, \
+                               profile_dict=profile_dict)
+    
+@authentication_check_decorator
+@authorization_check_decorator(DBA_ROLE_NAME)
+def detail_profile(pf_name:str):
+    """Detail a profile."""
+    pf_name = pf_name[3:] # remove PF_ prefix
+    with singleton_auth_manager.db_instance.engine.connect():
+        singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
+        query = f"""
+            SELECT PROFILE, RESOURCE_NAME, LIMIT
+            FROM DBA_PROFILES WHERE PROFILE = 'PF_{pf_name}'
+        """
+        resource_to_take_dict = {
+                'CONNECT_TIME': 1, 
+                'IDLE_TIME': 1,
+                'SESSIONS_PER_USER': 1
+        }
+        profile_result = singleton_auth_manager.db_instance.conn.execute(text(query))
+        session_per_user_options_list = [ss.value for ss in SessionPerUserEnum]
+        connect_time_options_list = [ct.value for ct in ConnectTimeEnum]
+        idle_time_options_list = [it.value for it in IdleTimeEnum]
+        resource_limit_of_profile_dict = {}
+        for row in profile_result:
+            resource_name = row[1]
+            limit = row[2]
+            print(resource_name, limit)
+            if resource_to_take_dict.get(resource_name) != None: 
+                # only take the resource we want, row is (pf_name, resource_name, limit)
+                resource_limit_of_profile_dict[resource_name] = limit
+        print(resource_limit_of_profile_dict)
+        return render_template('admin/profile_detail.html', \
+                               resource_limit_of_profile_dict=resource_limit_of_profile_dict, \
+                               session_per_user_options_list=session_per_user_options_list, \
+                               connect_time_options_list=connect_time_options_list, \
+                               idle_time_options_list=idle_time_options_list, \
+                               pf_name=pf_name)
+
+
+@authentication_check_decorator
+@authorization_check_decorator(DBA_ROLE_NAME)
+def update_profile():
+    """Update a profile with select options."""
+    pf_name = request.form.get('pf_name') # does not have PF_ prefix
+    session_per_user = request.form.get('session_per_user')
+    connect_time = request.form.get('connect_time')
+    idle_time = request.form.get('idle_time')
+
+    print(pf_name, session_per_user, connect_time, idle_time)
+    with singleton_auth_manager.db_instance.engine.connect():
+        singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
+        query = f"""
+            ALTER PROFILE PF_{pf_name} LIMIT
+            SESSIONS_PER_USER {session_per_user}
+            CONNECT_TIME {connect_time}
+            IDLE_TIME {idle_time}
+        """
+        singleton_auth_manager.db_instance.conn.execute(text(query))
+    return redirect(url_for('blueprint.list_profiles'))

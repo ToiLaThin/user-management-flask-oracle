@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for pf_tup in profile_tuple_list %}
+        Profile: {{ pf_tup[0] }} <a href="#">View Detail</a>
+        <br>
+    {% endfor %}
+    <br>
+    <br>
+    <br>
+    {% for pf, tup_list in profile_dict.items() %}
+        Profile: {{ pf }} <a href="{{ url_for('blueprint.detail_profile',pf_name=pf)}}">View Detail</a>
+        <br>
+        {% for tup in tup_list %}
+            {{ tup[0] }}: {{ tup[1] }}
+            <br>
+        {% endfor %}
+    {% endfor %}
+</body>
+</html>

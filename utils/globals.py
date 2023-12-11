@@ -1,3 +1,4 @@
+from enum import Enum
 from flask import redirect, url_for, flash
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
@@ -42,6 +43,25 @@ class AuthManager:
 
 # singleton in module python: https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
 singleton_auth_manager = AuthManager()
+
+class AccountStatusEnum(Enum):
+    OPEN = "OPEN"
+    LOCKED = "LOCKED"
+    
+class SessionPerUserEnum(Enum):
+    UNLIMITED = "UNLIMITED"
+    DEFAULT = "DEFAULT"
+    CUSTOM = "5"
+
+class ConnectTimeEnum(Enum):
+    UNLIMITED = "UNLIMITED"
+    DEFAULT = "DEFAULT"
+    CUSTOM = "60"
+
+class IdleTimeEnum(Enum):
+    UNLIMITED = "UNLIMITED"
+    DEFAULT = "DEFAULT"
+    CUSTOM = "30"
 
 def authentication_check_decorator(func):
     """sumary_line

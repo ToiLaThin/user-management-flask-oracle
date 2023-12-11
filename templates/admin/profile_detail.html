@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+    <h2>Profile: {{pf_name}}</h2>
+    <form method="POST" action="{{ url_for('blueprint.update_profile') }}">
+        <input type="hidden" name="pf_name" value="{{pf_name}}">
+        <h3>Session Per User Limits:</h3>        
+        <select name="session_per_user">
+            {% for spu in session_per_user_options_list %}
+                {% if spu == resource_limit_of_profile_dict['SESSIONS_PER_USER']%}
+                <option value="{{spu}}" selected>{{spu}}</option>
+                {% else %}
+                <option value="{{spu}}">{{spu}}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <h3>Connect Time Limits:</h3>
+        <select name="connect_time">
+            {% for ct in connect_time_options_list %}
+                {% if ct == resource_limit_of_profile_dict['CONNECT_TIME']%}
+                <option value="{{ct}}" selected>{{ct}}</option>
+                {% else %}
+                <option value="{{ct}}">{{ct}}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <h3>Idle Time Limits:</h3>
+        <select name="idle_time">
+            {% for it in idle_time_options_list %}
+                {% if it == resource_limit_of_profile_dict['IDLE_TIME']%}
+                <option value="{{it}}" selected>{{it}}</option>
+                {% else %}
+                <option value="{{it}}">{{it}}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit">Apply</button>
+    </form>
+</body>
+</html>
