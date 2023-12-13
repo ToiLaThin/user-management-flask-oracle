@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,61 +14,39 @@
         }
     </style>
 </head>
-<body>
-    <h3>Privs Through Role: {{userrole}}</h3>
+<body>    
+    <h3>{{grantee}} privs:</h3>
     <div class="row">
         <div class="column">
-            <h4>Obj Privs</h4>
-            {% for role_obj_priv in user_role_tab_privs_arr %}
-                <p style="color: red;">{{ role_obj_priv }}</p>
-            {% endfor %}
-            {% for role_obj_priv_not_applied in user_role_tab_privs_arr_not_applied %}
-                <p>{{ role_obj_priv_not_applied }}</p>
-            {% endfor %}
-        </div>
-        <div class="column">
             <h4>Sys Privs</h4>
-            {% for role_sys_priv in user_role_sys_privs_arr %}
-                <p style="color: red;">{{ role_sys_priv }}</p>
+            {% for grantee_sys_priv in grantee_sys_privs_granted_list %}
+                <div>
+                    <span class="tab_priv">{{ grantee_sys_priv }}</span>
+                    <input checked type="checkbox" value="{{ grantee_sys_priv }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                </div>
             {% endfor %}
-            {% for role_sys_priv_not_applied in user_role_sys_privs_arr_not_applied %}
-                <p>{{ role_sys_priv_not_applied }}</p>
+            {% for grantee_sys_priv_not_granted in grantee_sys_privs_not_granted_list %}
+                <div>
+                    <span class="tab_priv">{{ grantee_sys_priv_not_granted }}</span>
+                    <input type="checkbox" value="{{ grantee_sys_priv_not_granted }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                </div>
             {% endfor %}
         </div>
-    </div>
-    <br>
-    <h3>Privs Directly to user</h3>
-    <div class="row">
         <div class="column">
             <h4>Obj Privs</h4>
-            {% for user_obj_priv in user_tab_privs_arr %}
+            {% for grantee_tab_priv in grantee_tab_privs_granted_list %}
                 <div>
-                    <span class="tab_priv">{{ user_obj_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_obj_priv }}" class="priv"></input>
+                    <span class="tab_priv">{{ grantee_tab_priv }}</span>
+                    <input checked type="checkbox" value="{{ grantee_tab_priv }}" class="priv"></input>
                     <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
-            {% for user_obj_priv_not_applied in user_tab_privs_arr_not_applied %}
+            {% for grantee_tab_priv_not_granted in grantee_tab_privs_not_granted_list %}
                 <div>
-                    <span class="tab_priv">{{ user_obj_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_obj_priv_not_applied }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
-        </div>
-        <div class="column">
-            <h4>Sys Privs</h4>
-            {% for user_sys_priv in user_sys_privs_arr %}
-                <div>
-                    <span class="tab_priv">{{ user_sys_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_sys_priv }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
-            {% for user_sys_priv_not_applied in user_sys_privs_arr_not_applied %}
-                <div>
-                    <span class="tab_priv">{{ user_sys_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_sys_priv_not_applied }}" class="priv"></input>
+                    <span class="tab_priv">{{ grantee_tab_priv_not_granted }}</span>
+                    <input type="checkbox" value="{{ grantee_tab_priv_not_granted }}" class="priv"></input>
                     <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
@@ -77,25 +54,8 @@
     </div>
     <button class="apply-btn">Apply</button>
     <br>
-    <div>
-        <h3>Account Status: {{account_status}}</h3>
-        {% if account_status == 'LOCKED' %}
-            <button class="unlock-btn">
-                <a href="{{ url_for('blueprint.lock_unlock_user', astatus=account_status, username=username) }}">Unlock</a>
-            </button>
-        {% else %}
-            <button class="lock-btn">
-                <a href="{{ url_for('blueprint.lock_unlock_user', astatus=account_status, username=username) }}">Lock</a>
-            </button>
-        {% endif %}
-    </div>
-    <br>
-    <h3>Profile: {{userpf}}</h3>
-    {% for key, value in pf_resource_dict.items() %}
-        <p>{{ key }}: {{ value }}</p>
-    {% endfor %}
+    
     <script>
-        
         function applySelectedPrivs() {
             let all_checked_privs_with_grant_option = [];
             let all_checked_privs = [];
@@ -110,16 +70,13 @@
             });
             console.log(all_checked_privs);
             console.log("all_checked_privs_with_grant_option", all_checked_privs_with_grant_option);
-            fetch("http://localhost:5000/update_privs_user", {
+            fetch("http://localhost:5000/grant_priv_user_update", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    "username": "{{username}}",
-                    "userpf": "{{userpf}}",
-                    "userrole": "{{userrole}}",
-                    "account_status": "{{account_status}}",
+                    "username": "{{grantee}}",
                     "all_checked_privs": all_checked_privs,
                     "all_checked_privs_with_grant_option": all_checked_privs_with_grant_option
                 })
@@ -136,8 +93,8 @@
         let all_user_priv_checkboxes = document.querySelectorAll('input.priv[type="checkbox"]'); 
 
         // pass flask dict to js: https://stackoverflow.com/a/45132694
-        let priv_with_grant_option__lookup_dict = JSON.parse('{{ priv_with_grant_option__lookup_dict | tojson}}');
-        console.log(priv_with_grant_option__lookup_dict);
+        let priv_with_grant_option_lookup_dict = JSON.parse('{{ priv_with_grant_option_lookup_dict | tojson}}');
+        console.log(priv_with_grant_option_lookup_dict);
         all_user_priv_checkboxes.forEach(function(privilege_checkbox) {
             //create grant option checkbox and append it after priv checkbox
             let grant_option_checkbox = document.createElement('input');
@@ -146,7 +103,7 @@
             grant_option_checkbox.setAttribute('class', 'grant_option');
             grant_option_checkbox.innerHTML = "With Grant Option";
             //check if this priv has grant option, if it is, the grant option checkbox is checked
-            if (priv_with_grant_option__lookup_dict[privilege_checkbox.value] == 'YES') {
+            if (priv_with_grant_option_lookup_dict[privilege_checkbox.value] == 'YES') {
                 grant_option_checkbox.checked = true;
             } else {
                 grant_option_checkbox.checked = false;

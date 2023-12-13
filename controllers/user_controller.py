@@ -150,3 +150,162 @@ def user_account_delete(userid):
         except Exception as e:
             return "Error: " + str(e)
     return redirect(url_for('blueprint.user_account_list'))
+
+@authentication_check_decorator
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def grant_privs_user_list():
+    """Get all user accounts."""
+    with OracleDb('sys', '123') as db:
+        try:
+            # have username since we have authen checked
+            transformed_logged_in_username = "U_" + singleton_auth_manager.db_instance.username.upper()
+            username_result = db.conn.execute(text(f"SELECT USERNAME FROM DBA_USERS WHERE REGEXP_LIKE (USERNAME ,'^U_.*$') AND USERNAME != '{transformed_logged_in_username}'"))
+            sys_privs_current_logged_in_user_can_grant_result = db.conn.execute(text(f"SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = '{transformed_logged_in_username}' AND ADMIN_OPTION = 'YES'"))
+            tab_privs_current_logged_in_user_can_grant_result = db.conn.execute(text(f"SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = '{transformed_logged_in_username}' AND GRANTABLE = 'YES'"))
+
+            sys_privs_current_logged_in_user_can_grant_list = []
+            tab_privs_current_logged_in_user_can_grant_list = []
+
+            for row in sys_privs_current_logged_in_user_can_grant_result:
+                spriv = row[1]
+                sys_privs_current_logged_in_user_can_grant_list.append(spriv)
+            for row in tab_privs_current_logged_in_user_can_grant_result:
+                # ALL ARE UPPER CASE ALREADY
+                tpriv = row[4]
+                owner = row[1]
+                table_name = row[2]
+                full_tab_priv_name = tpriv + " ON " + owner + "." + table_name
+                tab_privs_current_logged_in_user_can_grant_list.append(full_tab_priv_name)
+
+            username_list = []
+            for row in username_result:
+                uname = row[0]
+                print(uname)
+                username_list.append(uname)
+
+        except Exception as e:
+            return "Error: " + str(e)
+        print(sys_privs_current_logged_in_user_can_grant_list)
+        print(tab_privs_current_logged_in_user_can_grant_list)
+        return render_template('user/grant_privs_user_list.html', username_list=username_list, \
+                               sys_privs_current_logged_in_user_can_grant_list=sys_privs_current_logged_in_user_can_grant_list, \
+                               tab_privs_current_logged_in_user_can_grant_list=tab_privs_current_logged_in_user_can_grant_list,
+                               grantor=transformed_logged_in_username)
+    
+@authentication_check_decorator
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def grant_priv_user_detail(grantor:str, grantee:str):
+    with OracleDb('sys', '123') as db:
+        try:
+            # it 's a little weird that grantee = grantor, but 's the curr logged in user is the grantor, in the db it's still the grantee column
+            sys_privs_current_logged_in_user_can_grant_result = db.conn.execute(text(f"SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = '{grantor}' AND ADMIN_OPTION = 'YES'"))
+            tab_privs_current_logged_in_user_can_grant_result = db.conn.execute(text(f"SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = '{grantor}' AND GRANTABLE = 'YES'"))
+            grantee_sys_privs_granted_result = db.conn.execute(text(f"SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = '{grantee}'"))
+            grantee_tab_privs_granted_result = db.conn.execute(text(f"SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = '{grantee}'"))
+
+            sys_privs_current_logged_in_user_can_grant_list = []
+            tab_privs_current_logged_in_user_can_grant_list = []
+            grantee_sys_privs_granted_list = []
+            grantee_tab_privs_granted_list = []
+            grantee_tab_privs_not_granted_list = []
+            grantee_sys_privs_not_granted_list = []
+
+            priv_with_grant_option_lookup_dict = {}
+            for row in grantee_sys_privs_granted_result:
+                spriv = row[1]
+                admin_option = row[2]
+                grantee_sys_privs_granted_list.append(spriv)
+                priv_with_grant_option_lookup_dict[spriv] = admin_option
+                
+            for row in grantee_tab_privs_granted_result:
+                # ALL ARE UPPER CASE ALREADY
+                tpriv = row[4]
+                owner = row[1]
+                table_name = row[2]
+                full_tab_priv_name = tpriv + " ON " + owner + "." + table_name
+                grantable = row[5]
+                grantee_tab_privs_granted_list.append(full_tab_priv_name)
+                priv_with_grant_option_lookup_dict[full_tab_priv_name] = grantable
+
+            for row in sys_privs_current_logged_in_user_can_grant_result:
+                spriv = row[1]
+                sys_privs_current_logged_in_user_can_grant_list.append(spriv)
+
+            for row in tab_privs_current_logged_in_user_can_grant_result:
+                # ALL ARE UPPER CASE ALREADY
+                tpriv = row[4]
+                owner = row[1]
+                table_name = row[2]
+                full_tab_priv_name = tpriv + " ON " + owner + "." + table_name
+                tab_privs_current_logged_in_user_can_grant_list.append(full_tab_priv_name)
+
+        except Exception as e:
+            return "Error: " + str(e)
+        
+        grantee_sys_privs_not_granted_list = [spriv for spriv in sys_privs_current_logged_in_user_can_grant_list \
+                                                if spriv not in priv_with_grant_option_lookup_dict]
+        grantee_tab_privs_not_granted_list = [tpriv for tpriv in tab_privs_current_logged_in_user_can_grant_list \
+                                                if tpriv not in priv_with_grant_option_lookup_dict]
+        print(sys_privs_current_logged_in_user_can_grant_list)
+        print(tab_privs_current_logged_in_user_can_grant_list)
+        print(grantee_sys_privs_granted_list)
+        print(grantee_tab_privs_granted_list)
+        print(grantee_sys_privs_not_granted_list)
+        print(grantee_tab_privs_not_granted_list)
+        return render_template('user/grant_priv_user_detail.html', \
+                               grantee_sys_privs_granted_list=grantee_sys_privs_granted_list, \
+                               grantee_tab_privs_granted_list=grantee_tab_privs_granted_list, \
+                               grantee_sys_privs_not_granted_list=grantee_sys_privs_not_granted_list, \
+                               grantee_tab_privs_not_granted_list=grantee_tab_privs_not_granted_list, \
+                               priv_with_grant_option_lookup_dict=priv_with_grant_option_lookup_dict, \
+                               grantor=grantor, grantee=grantee)
+    
+@authentication_check_decorator
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def grant_priv_user_update():
+    """
+    Revoke all privs of a user account, both tab and sys privs. 
+    Then grant all checked privs via AJAX (for grantor to be current logged in user
+    we must use the conn in singleton_auth_manager.db_instance.conn)
+    """
+    username = request.json['username'] # this username already has U_ prefix
+    username = username[2:]
+    all_checked_privs = request.json['all_checked_privs']
+    all_checked_privs_with_grant_option = request.json['all_checked_privs_with_grant_option']
+    print(all_checked_privs)
+    print(all_checked_privs_with_grant_option)
+
+    grant_all_privs_query = f"GRANT ALL PRIVILEGES TO U_{username.upper()}"
+    revoke_all_privs_query = f"REVOKE ALL PRIVILEGES FROM U_{username.upper()}"
+    grant_priv_query = """GRANT {priv} TO U_{username}"""
+    with OracleDb('sys', '123') as db: # This to avoid current logged in user not have enough privs to grant all privs
+        db.conn.execute(text(grant_all_privs_query)) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
+        db.conn.execute(text(revoke_all_privs_query))
+        db.conn.commit()   
+
+    all_sys_privs = [
+                'CREATE PROFILE', 'ALTER PROFILE', 'DROP PROFILE',\
+                'CREATE USER', 'ALTER USER', 'DROP USER',\
+                'CREATE SESSION',\
+                'CREATE ROLE', 'ALTER ANY ROLE', 'DROP ANY ROLE', 'GRANT ANY ROLE'\
+                'CREATE ANY TABLE', 'ALTER ANY TABLE', 'DROP ANY TABLE', 'CREATE TABLE'\
+                'SELECT ANY TABLE', 'DELETE ANY TABLE', 'INSERT ANY TABLE', 'UPDATE ANY TABLE'
+            ]
+    from utils.globals import TEST_TABLE_NAME
+    all_tab_privs = [
+        f'SELECT ON {TEST_TABLE_NAME}', f'DELETE ON {TEST_TABLE_NAME}',\
+        f'INSERT ON {TEST_TABLE_NAME}', f'UPDATE ON {TEST_TABLE_NAME}'
+    ]
+    for priv in all_checked_privs:
+        if priv in all_checked_privs_with_grant_option:
+            if priv in all_sys_privs:
+                # to remove admin option from sys privs, we need to revoke it first, then grant it again
+                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH ADMIN OPTION"
+            else:
+                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH GRANT OPTION"
+        else:
+            grant_query = grant_priv_query.format(priv=priv, username=username.upper())
+        print(grant_query)
+        singleton_auth_manager.db_instance.conn.execute(text(grant_query))
+        singleton_auth_manager.db_instance.conn.commit()
+    return "Update success"

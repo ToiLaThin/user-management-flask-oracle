@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User_To_Grant_Priv</title>
+</head>
+<body>
+    <h2>Privs {{grantor}} Can Grant:</h2>
+    <h3>Sys Privs: </h3>
+    {% for spriv in sys_privs_current_logged_in_user_can_grant_list %}
+        <p>{{ spriv }}</p>
+    {% endfor %}
+
+    <h3>Tab Privs: </h3>
+    {% for tpriv in tab_privs_current_logged_in_user_can_grant_list %}
+        <p>{{ tpriv }}</p>
+    {% endfor %}
+    <h2>You Can Grant Privs To These Users:</h2>
+    {% for username in username_list %}
+        <p><a href="{{url_for('blueprint.grant_priv_user_detail', grantor=grantor, grantee=username)}}">{{ username }}</a></p>
+    {% endfor %}
+</body>
+</html>

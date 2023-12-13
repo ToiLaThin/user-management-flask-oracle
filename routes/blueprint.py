@@ -20,7 +20,9 @@ blueprint.route('/update_profile', methods=['POST'])(dba_ctrl.update_profile)
 
 # This have POST for redirect from another post method
 blueprint.route('/user_account_list', methods=['GET', 'POST'])(user_ctrl.user_account_list) 
-# blueprint.route('/user_account_detail/<string:username>', methods=['GET'])(user_ctrl.user_account_detail)
-# blueprint.route('/user_account_update', methods=['POST'])(user_ctrl.user_account_update)
 blueprint.route('/user_account_delete/<int:userid>', methods=['GET'])(user_ctrl.user_account_delete)
 blueprint.route('/user_account_create', methods=['GET', 'POST'])(user_ctrl.user_account_create)
+
+blueprint.route('/grant_privs_user_list', methods=['GET'])(user_ctrl.grant_privs_user_list)
+blueprint.route('/grant_priv_user_detail/<string:grantor>/<string:grantee>', methods=['GET'])(user_ctrl.grant_priv_user_detail)
+blueprint.route('/grant_priv_user_update', methods=['POST'])(user_ctrl.grant_priv_user_update)
