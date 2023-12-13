@@ -31,6 +31,11 @@ class OracleDb:
                 'oracle+oracledb://{username}:{password}@' + self.host +
                 ':' + str(self.port) + '/?service_name=' + self.service_name + '&mode=sysdba'
             )
+        elif username == "dummy":
+            self.conn_string = (
+                'oracle+oracledb://{username}:{password}@' + self.host +
+                ':' + str(self.port) + '/?service_name=' + self.service_name
+            )
         else:
             self.conn_string = (
                 'oracle+oracledb://U_{username}:{password}@' + self.host + ':' + \

@@ -21,11 +21,10 @@ def init_db():
     Create all oracle roles, profile, tablespaces
     """
     # 
+
+
     with OracleDb("sys", "123") as db:
-        Base.metadata.create_all(db.engine)
         print(db) # print result of __repr__ method
-        # check_role_manager_query = "SELECT * FROM dba_roles WHERE role = 'MANAGER'"
-        # drop_role_admin_query = "DROP ROLE ADMIN"
 
         # TODO: always run drop role, profile, tablespace query
         # otherwise it will not set the container right, then the select dba tablespace return the wrong result
@@ -33,17 +32,17 @@ def init_db():
         # after we set container to FREEPDB1, the role name must not have C## prefixs, now we use freepdb, 
         # two try catch to make sure it run the later if the first fail, if there no role, profile, tablespace, we create them
 
-        try:
-            # drop all role, profile, tablespace then recreate
-            db.conn.execute(text(DROP_TABLESPACE_MANAGER_QUERY))
-            db.conn.execute(text(DROP_TABLESPACE_EMPLOYEE_QUERY))
-            db.conn.execute(text(DROP_PROFILE_MANAGER_QUERY))
-            db.conn.execute(text(DROP_PROFILE_EMPLOYEE_QUERY))
-            db.conn.execute(text(DROP_ROLE_MANAGER_QUERY))
-            db.conn.execute(text(DROP_ROLE_EMPLOYEE_QUERY))
-            db.conn.commit()
-        except Exception as e:
-            print(e)
+        # try:
+        #     # drop all role, profile, tablespace then recreate
+        #     db.conn.execute(text(DROP_TABLESPACE_MANAGER_QUERY))
+        #     db.conn.execute(text(DROP_TABLESPACE_EMPLOYEE_QUERY))
+        #     db.conn.execute(text(DROP_PROFILE_MANAGER_QUERY))
+        #     db.conn.execute(text(DROP_PROFILE_EMPLOYEE_QUERY))
+        #     db.conn.execute(text(DROP_ROLE_MANAGER_QUERY))
+        #     db.conn.execute(text(DROP_ROLE_EMPLOYEE_QUERY))
+        #     db.conn.commit()
+        # except Exception as e:
+        #     print(e)
             
         try:
             db.conn.execute(text(SET_RESOURCE_LIMIT_QUERY))
@@ -56,12 +55,31 @@ def init_db():
             db.conn.execute(text(CREATE_ROLE_MANAGER_QUERY))
             db.conn.execute(text(CREATE_ROLE_EMPLOYEE_QUERY))
             db.conn.execute(text(CREATE_TABLESPACE_QUERY.format(tablespace_name = "TBS_MANAGER")))
-            db.conn.execute(text(CREATE_TABLESPACE_QUERY.format(tablespace_name = "TBS_EMPLOYEE")))
+            db.conn.execute(text(CREATE_TABLESPACE_QUERY.format(tablespace_name = "TBS_EMPLOYEE")))            
             db.conn.commit()
         except Exception as e:
             print(e)
             print("Error when create role, profile, tablespace, may be called the second time")
-    print("Created all table in database")
+
+        try:
+            db.conn.execute(text("CREATE USER dummy IDENTIFIED BY dummy"))
+            db.conn.execute(text("GRANT CREATE SESSION TO dummy"))
+            db.conn.execute(text("ALTER USER dummy QUOTA 10M ON users"))
+            db.conn.execute(text("GRANT CREATE TABLE TO dummy"))
+            db.conn.execute(text("GRANT CREATE SEQUENCE TO dummy"))
+            db.conn.commit()
+        except Exception as e:
+            print(e)
+            print("Error when create dummy user, may be called the second time")
+
+    with OracleDb("dummy", "dummy") as db:
+        try:      
+            db.conn.execute(text(SET_SESSION_CONTAINER_QUERY))      
+            Base.metadata.create_all(db.engine)
+        except Exception as e:
+            print(e)
+            print("Error when create all table, may be called the second time")
+        print("Created all table in database")
 
 def create_app():
     """

@@ -15,7 +15,7 @@ from services.user_service import delete_user as srv_delete_user
 from services.user_service import check_user_valid as srv_check_user_valid
 from werkzeug.security import generate_password_hash
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def create_account():
     # TODO this is only valid for dba user
     """Create a new user account."""
@@ -55,7 +55,7 @@ def create_account():
             return f"user {username} is already exist"
     
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def delete_account():    
     """Delete an existing user account."""
     if request.method == 'GET':
@@ -69,7 +69,7 @@ def delete_account():
     
 
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def list_users():
     """List all user accounts."""
     with singleton_auth_manager.db_instance.engine.connect():
@@ -92,7 +92,7 @@ def list_users():
         return render_template('admin/user_list.html', table=html)
     
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def detail_user():
     """Detail a user account."""    
     if request.method == 'GET' or request.method == 'POST':
@@ -121,9 +121,12 @@ def detail_user():
             df_privs_sys_to_user = pd.read_sql_query(text(query_user_privs_sys), singleton_auth_manager.db_instance.engine)
             df_privs_tab_to_user = pd.read_sql_query(text(query_user_privs_tab), singleton_auth_manager.db_instance.engine)
             df_privs_sys_to_userrole = pd.read_sql_query(text(query_role_privs_sys), singleton_auth_manager.db_instance.engine)
-            df_privs_tab_to_userrole = pd.read_sql_query(text(query_role_privs_tab), singleton_auth_manager.db_instance.engine)
+            df_privs_tab_to_userrole = pd.read_sql_query(text(query_role_privs_tab), singleton_auth_manager.db_instance.engine)            
 
             user_sys_privs_arr = df_privs_sys_to_user['privilege'].array
+            # TODO transform this tab privs to format: "PRIVILEGES ON OWNER.TABLE"
+            df_privs_tab_to_user['privilege'] = df_privs_tab_to_user['privilege'].transform(
+                lambda x: x + " ON " + df_privs_tab_to_user['owner'] + "." + df_privs_tab_to_user['table_name'])
             user_tab_privs_arr = df_privs_tab_to_user['privilege'].array
             user_role_sys_privs_arr = df_privs_sys_to_userrole['privilege'].array
             user_role_tab_privs_arr = df_privs_tab_to_userrole['privilege'].array
@@ -134,6 +137,18 @@ def detail_user():
             print("User tab privs: ", df_privs_tab_to_user)
             print("Role sys privs: ", df_privs_sys_to_userrole)
             print("Role tab privs: ", df_privs_tab_to_userrole)
+
+            # create dictionary key: privilege, value: is admin option/ grantable or not
+            priv_with_grant_option__lookup_dict = {}
+            for _, row in df_privs_sys_to_user.iterrows():
+                sys_priv = row['privilege']
+                have_admin_option = row['admin_option']
+                priv_with_grant_option__lookup_dict[sys_priv] = have_admin_option
+            for _, row in df_privs_tab_to_user.iterrows():
+                tab_priv = row['privilege']
+                have_admin_option = row['grantable']
+                priv_with_grant_option__lookup_dict[tab_priv] = have_admin_option
+            print(priv_with_grant_option__lookup_dict)
 
             pf_resource_dict = {}
             resource_to_take_dict = {
@@ -182,11 +197,12 @@ def detail_user():
                                , user_role_tab_privs_arr_not_applied=user_role_tab_privs_arr_not_applied\
                                
                                , account_status=account_status\
+                               , priv_with_grant_option__lookup_dict=priv_with_grant_option__lookup_dict\
                             )
     
 
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def update_privs_user():
     """
     Revoke all privs of a user account, both tab and sys privs. 
@@ -195,9 +211,12 @@ def update_privs_user():
     username = request.json['username'] # this username already has U_ prefix
     username = username[2:]
     all_checked_privs = request.json['all_checked_privs']
+    all_checked_privs_with_grant_option = request.json['all_checked_privs_with_grant_option']
     print(all_checked_privs)
+    print(all_checked_privs_with_grant_option)
     userpf = request.json['userpf']
     userrole = request.json['userrole']
+    account_status = request.json['account_status']
 
     grant_all_privs_query = f"GRANT ALL PRIVILEGES TO U_{username.upper()}"
     revoke_all_privs_query = f"REVOKE ALL PRIVILEGES FROM U_{username.upper()}"
@@ -206,23 +225,45 @@ def update_privs_user():
     print(singleton_auth_manager.db_instance)
     singleton_auth_manager.db_instance.conn.execute(text(grant_all_privs_query)) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
     singleton_auth_manager.db_instance.conn.execute(text(revoke_all_privs_query))
+
+    all_sys_privs = [
+                'CREATE PROFILE', 'ALTER PROFILE', 'DROP PROFILE',\
+                'CREATE USER', 'ALTER USER', 'DROP USER',\
+                'CREATE SESSION',\
+                'CREATE ROLE', 'ALTER ANY ROLE', 'DROP ANY ROLE', 'GRANT ANY ROLE'\
+                'CREATE ANY TABLE', 'ALTER ANY TABLE', 'DROP ANY TABLE', 'CREATE TABLE'\
+                'SELECT ANY TABLE', 'DELETE ANY TABLE', 'INSERT ANY TABLE', 'UPDATE ANY TABLE'
+            ]
+    from utils.globals import TEST_TABLE_NAME
+    all_tab_privs = [
+        f'SELECT ON {TEST_TABLE_NAME}', f'DELETE ON {TEST_TABLE_NAME}',\
+        f'INSERT ON {TEST_TABLE_NAME}', f'UPDATE ON {TEST_TABLE_NAME}'
+    ]
     for priv in all_checked_privs:
-        grant_query = grant_priv_query.format(priv=priv, username=username.upper())
+        if priv in all_checked_privs_with_grant_option:
+            if priv in all_sys_privs:
+                # to remove admin option from sys privs, we need to revoke it first, then grant it again
+                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH ADMIN OPTION"
+            else:
+                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH GRANT OPTION"
+        else:
+            grant_query = grant_priv_query.format(priv=priv, username=username.upper())
         print(grant_query)
         singleton_auth_manager.db_instance.conn.execute(text(grant_query))
     return redirect(
         url_for('blueprint.detail_user', 
                 username=username, 
                 userpf=userpf, 
-                userrole=userrole)
+                userrole=userrole,
+                account_status=account_status)
     )
 
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def lock_unlock_user(astatus: str, username: str):
     """Lock or unlock a user account."""
     username = username[2:] # remove U_ prefix
-    if astatus == AccountStatusEnum.LOCKED:
+    if astatus == AccountStatusEnum.LOCKED.value:
         print("Locked. Unlocking user account")
         query = f"ALTER USER U_{username} ACCOUNT UNLOCK"
     else:
@@ -235,7 +276,7 @@ def lock_unlock_user(astatus: str, username: str):
 
 
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def list_profiles():
     """List all profiles."""
     with singleton_auth_manager.db_instance.engine.connect():
@@ -277,7 +318,7 @@ def list_profiles():
                                profile_dict=profile_dict)
     
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def detail_profile(pf_name:str):
     """Detail a profile."""
     pf_name = pf_name[3:] # remove PF_ prefix
@@ -314,7 +355,7 @@ def detail_profile(pf_name:str):
 
 
 @authentication_check_decorator
-@authorization_check_decorator(DBA_ROLE_NAME)
+@authorization_check_decorator([DBA_ROLE_NAME])
 def update_profile():
     """Update a profile with select options."""
     pf_name = request.form.get('pf_name') # does not have PF_ prefix

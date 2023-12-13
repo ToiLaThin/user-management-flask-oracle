@@ -45,13 +45,15 @@
             {% for user_obj_priv in user_tab_privs_arr %}
                 <div>
                     <span class="tab_priv">{{ user_obj_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_obj_priv }}"></input>
+                    <input checked type="checkbox" value="{{ user_obj_priv }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
             {% for user_obj_priv_not_applied in user_tab_privs_arr_not_applied %}
                 <div>
                     <span class="tab_priv">{{ user_obj_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_obj_priv_not_applied }}"></input>
+                    <input type="checkbox" value="{{ user_obj_priv_not_applied }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
         </div>
@@ -60,13 +62,15 @@
             {% for user_sys_priv in user_sys_privs_arr %}
                 <div>
                     <span class="tab_priv">{{ user_sys_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_sys_priv }}"></input>
+                    <input checked type="checkbox" value="{{ user_sys_priv }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
             {% for user_sys_priv_not_applied in user_sys_privs_arr_not_applied %}
                 <div>
                     <span class="tab_priv">{{ user_sys_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_sys_priv_not_applied }}"></input>
+                    <input type="checkbox" value="{{ user_sys_priv_not_applied }}" class="priv"></input>
+                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
                 </div>
             {% endfor %}
         </div>        
@@ -91,13 +95,21 @@
         <p>{{ key }}: {{ value }}</p>
     {% endfor %}
     <script>
+        
         function applySelectedPrivs() {
+            let all_checked_privs_with_grant_option = [];
             let all_checked_privs = [];
-            let all_user_priv_checked_checkboxs = document.querySelectorAll('input[type="checkbox"]:checked');
+            let all_user_priv_checked_checkboxs = document.querySelectorAll('input.priv[type="checkbox"]:checked');
+            //next sibling combinator +
+            let all_user_priv_with_grant_option_checkboxs = document.querySelectorAll('input.priv[type="checkbox"]:checked + input.grant_option[type="checkbox"]:checked');
             all_user_priv_checked_checkboxs.forEach(function(checkbox) {
                 all_checked_privs.push(checkbox.value);
             });
+            all_user_priv_with_grant_option_checkboxs.forEach(function(grant_checkbox) {
+                all_checked_privs_with_grant_option.push(grant_checkbox.value); //the value is the priv name that user can grant to other user
+            });
             console.log(all_checked_privs);
+            console.log("all_checked_privs_with_grant_option", all_checked_privs_with_grant_option);
             console.log({{user}})
             fetch("http://localhost:5000/update_privs_user", {
                 method: "POST",
@@ -108,7 +120,9 @@
                     "username": "{{username}}",
                     "userpf": "{{userpf}}",
                     "userrole": "{{userrole}}",
-                    "all_checked_privs": all_checked_privs
+                    "account_status": "{{account_status}}",
+                    "all_checked_privs": all_checked_privs,
+                    "all_checked_privs_with_grant_option": all_checked_privs_with_grant_option
                 })
             }).then(function(response) {
                 alert("Privs Updated");
@@ -119,8 +133,64 @@
             // });
         }
 
+        //for all priv checkboxes, create grant option checkbox
+        let all_user_priv_checkboxes = document.querySelectorAll('input.priv[type="checkbox"]'); 
 
+        // pass flask dict to js: https://stackoverflow.com/a/45132694
+        let priv_with_grant_option__lookup_dict = JSON.parse('{{ priv_with_grant_option__lookup_dict | tojson}}');
+        console.log(priv_with_grant_option__lookup_dict);
+        all_user_priv_checkboxes.forEach(function(privilege_checkbox) {
+            //create grant option checkbox and append it after priv checkbox
+            let grant_option_checkbox = document.createElement('input');
+            grant_option_checkbox.setAttribute('type', 'checkbox');
+            grant_option_checkbox.setAttribute('value', privilege_checkbox.value);
+            grant_option_checkbox.setAttribute('class', 'grant_option');
+            grant_option_checkbox.innerHTML = "With Grant Option";
+            //check if this priv has grant option, if it is, the grant option checkbox is checked
+            if (priv_with_grant_option__lookup_dict[privilege_checkbox.value] == 'YES') {
+                grant_option_checkbox.checked = true;
+            } else {
+                grant_option_checkbox.checked = false;
+            }
 
+            privilege_checkbox.insertAdjacentElement('afterend', grant_option_checkbox);
+            //to debug
+            grant_option_checkbox.addEventListener('click', function() {
+                let privilege = privilege_checkbox.value;
+                let grant_option = grant_option_checkbox.checked;
+                console.log("Priv:" + privilege);
+                console.log("Is Granted:" + grant_option);
+            });
+            
+            //if priv checkbox is checked, show grant option checkbox, otherwise hide it
+            if (privilege_checkbox.checked) {
+                grant_option_checkbox.style.display = "inline";
+            } else {
+                grant_option_checkbox.style.display = "none";
+            }
+
+            //toggle grant option checkbox when toggle priv checkbox
+            privilege_checkbox.addEventListener('click', function() {
+                let privilege = privilege_checkbox.value;
+
+                let grant_option_checkbox = privilege_checkbox.nextElementSibling;
+                if (privilege_checkbox.checked) { 
+                    //clicked to check this priv checkbox
+                    grant_option_checkbox.style.display = "inline";
+                    //to debug
+                    console.log("To grant:" + privilege);
+                    console.log("Priv current grant status:" + grant_option_checkbox.checked)
+                } else {
+                    //clicked to uncheck this priv checkbox
+                    grant_option_checkbox.checked = false;
+                    grant_option_checkbox.style.display = "none";
+                    //to debug
+                    console.log("To be removed: " + privilege);
+                    console.log("Priv current grant status:" + grant_option_checkbox.checked)
+                }
+            });
+        });
+        
         document.querySelector('button.apply-btn').addEventListener('click', applySelectedPrivs);
     </script>
 </body>

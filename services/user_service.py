@@ -15,9 +15,14 @@ def add_user(username: str, password: str, tablespace_name: str, quota: int, pro
             DEFAULT TABLESPACE {tablespace_name} QUOTA {quota}M ON {tablespace_name}
             PROFILE {profile_name}
         """
+        from utils.globals import TEST_TABLE_NAME
+        from random import randint
+        random_salary = randint(1000, 10000)
+        insert_user_test_table_query = f"INSERT INTO {TEST_TABLE_NAME} (name, salary) VALUES ('{username}', {random_salary})"
         grant_selected_role = f"GRANT {role_name} TO U_{username.upper()}"
         grant_connect_query = f"GRANT CREATE SESSION TO U_{username.upper()}"
         db.conn.execute(text(create_user_query))
+        db.conn.execute(text(insert_user_test_table_query))
         db.conn.execute(text(grant_selected_role))
         db.conn.execute(text(grant_connect_query))
         db.conn.commit()

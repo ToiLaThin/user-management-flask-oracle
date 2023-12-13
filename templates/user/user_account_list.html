@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>    
+    {% for user_account in user_account_tuple_list %}
+        <p>Account Name: {{ user_account[1] }} - Salary: {{user_account[2]}} - <a href="{{ url_for('blueprint.user_account_delete', userid=user_account[0]) }}">Delete</a></p>
+    {% endfor %}
+
+    <button><a href="{{url_for('blueprint.user_account_create')}}">Add User Account</a></button>
+</body>
+</html>

@@ -78,7 +78,7 @@ def authentication_check_decorator(func):
         
     return wrapper
 
-def authorization_check_decorator(role_name:str):
+def authorization_check_decorator(role_names:list):
     """sumary_line
     Decorator to check if user have enough role to access the function
     """
@@ -86,7 +86,7 @@ def authorization_check_decorator(role_name:str):
         @wraps(func) # this to keep the original function name and doc
         def wrapper(*args, **kwargs):
             for role in singleton_auth_manager.roles:
-                if role == role_name:
+                if role in role_names:
                     return func(*args, **kwargs)
             else:
                 flash("Logout user to login with another account with role have access control", 'warning')
@@ -100,4 +100,4 @@ DBA_ROLE_NAME = "DBA"
 MANAGER_ROLE_NAME = "R_MANAGER"
 EMPLOYEE_ROLE_NAME = "R_EMPLOYEE"
 HASHED_METHOD = "pbkdf2:sha256"
-TEST_TABLE_NAME = "dummy.user_account"
+TEST_TABLE_NAME = "DUMMY.USER_ACCOUNT"

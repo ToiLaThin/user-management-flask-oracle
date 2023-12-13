@@ -62,7 +62,7 @@ def get_user_accounts():
     """Get all user accounts."""
     from sqlalchemy import text
     with singleton_auth_manager.db_instance.engine.connect() as conn:
-        result = conn.execute(text("SELECT * FROM dummy.user_account"))
+        result = conn.execute(text(f"SELECT * FROM {TEST_TABLE_NAME}"))
         user_list = []
         for row in result:
             print(row)
@@ -100,3 +100,53 @@ def get_account_infos():
         Account role privs: " + {account_role_privs_list}     
         Account privs without role: " + {account_privs_without_role_list}       
     """
+
+from utils.globals import TEST_TABLE_NAME
+@authentication_check_decorator
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def user_account_list():
+    """Get all user accounts."""
+    with singleton_auth_manager.db_instance.engine.connect() as conn:
+        try:
+            result = conn.execute(text(f"SELECT * FROM {TEST_TABLE_NAME}"))
+            user_account_tuple_list = []
+            for row in result:
+                print(row)
+                user_account_tuple_list.append(row)
+        except Exception as e:
+            return "Error: " + str(e)
+        return render_template('user/user_account_list.html', user_account_tuple_list=user_account_tuple_list)
+    
+from flask import redirect, url_for
+@authentication_check_decorator
+# sys have both of these roles so sys can also create user or delete user
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def user_account_create():
+    """Add a new user account."""
+    if request.method == 'GET':
+        return render_template('user/user_account_create.html')
+    else:
+        from random import randint
+        username = request.form.get('username')
+        random_salary = randint(1000, 10000)
+        insert_user_test_table_query = f"INSERT INTO {TEST_TABLE_NAME} (name, salary) VALUES ('{username}', {random_salary})"
+        with singleton_auth_manager.db_instance.engine.connect() as conn:
+            try:
+                conn.execute(text(insert_user_test_table_query))
+                conn.commit()
+            except Exception as e:
+                return "Error: " + str(e)
+        return redirect(url_for('blueprint.user_account_list'))
+    
+@authentication_check_decorator
+@authorization_check_decorator([EMPLOYEE_ROLE_NAME, MANAGER_ROLE_NAME])
+def user_account_delete(userid):
+    """Delete an existing user account."""
+    delete_user_test_table_query = f"DELETE FROM {TEST_TABLE_NAME} WHERE id = {userid}"
+    with singleton_auth_manager.db_instance.engine.connect() as conn:
+        try:
+            conn.execute(text(delete_user_test_table_query))
+            conn.commit()
+        except Exception as e:
+            return "Error: " + str(e)
+    return redirect(url_for('blueprint.user_account_list'))
