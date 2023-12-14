@@ -1,0 +1,21 @@
+table {
+    border-collapse: collapse;
+    border: 1px solid var(--clr-secondary-dark);
+}
+
+td, th {    
+    border: 1px solid var(--clr-secondary-dark);
+    padding: .2rem .2rem;
+}
+
+th {
+    background-color: var(--clr-primary-blue);
+    color: var(--clr-secondary-light);
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;;    
+}
+tr:not(:first-child):hover {
+    opacity: 0.5;
+}

@@ -1,15 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>    
-    {% for user_account in user_account_tuple_list %}
-        <p>Account Name: {{ user_account[1] }} - Salary: {{user_account[2]}} - <a href="{{ url_for('blueprint.user_account_delete', userid=user_account[0]) }}">Delete</a></p>
-    {% endfor %}
-
-    <button><a href="{{url_for('blueprint.user_account_create')}}">Add User Account</a></button>
-</body>
-</html>
+{% extends "base_with_snav.html"%}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+{% endblock %}
+{% block content_side_nav %}
+    {% include 'snav_admin.html' %}
+{% endblock %}
+{% block content_main %}
+    <button>
+        <a href="{{url_for('blueprint.user_account_create')}}">
+         <i class="fas fa-plus"></i> Add User Account
+        </a>
+    </button>
+    <table>
+        <tr>
+            <th>Account Name</th>
+            <th>Salary</th>
+            <th>Actions</th>
+        </tr>
+        {% for user_account in user_account_tuple_list %}
+            <tr>
+                <td>{{ user_account[1] }}</td>
+                <td>{{ user_account[2] }}</td>
+                <td><a href="{{ url_for('blueprint.user_account_delete', userid=user_account[0]) }}">
+                    <i class="fas fa-trash"></i> - Delete
+                </a></td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

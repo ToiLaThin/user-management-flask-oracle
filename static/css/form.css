@@ -1,3 +1,49 @@
 .form-group:not(:first-child){
     margin-top: 30px;
 }
+
+.form-group {
+    position: relative;
+}
+
+.form-group label {
+    position: absolute;
+    top: -.8rem;
+    left: .8rem;
+    z-index: 1;
+
+    padding: 0 4px;
+    background-color: var(--clr-secondary-light);
+    font-size: var(--fs-md);
+    color: var(--clr-primary-dark);
+}
+
+.form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"] {
+    padding: 12px 6px;
+    border: 1px solid var(--clr-primary-blue);
+    border-radius: 4px;
+    width: 100%;
+}
+
+button[type="submit"] {
+    width: 100%;
+    padding: var(--p-2) var(--p-3);
+    margin-top: var(--m-3);
+
+    border: 1px solid var(--clr-primary-blue);
+    border-radius: 4px;
+    background-color: var(--clr-primary-blue);
+
+    color: var(--clr-secondary-light);
+    font-size: var(--fs-md);
+    font-weight: var(--fw-bold);
+
+    text-transform: uppercase;
+}
+
+select {
+    padding: 12px 6px;
+    border: 1px solid var(--clr-primary-blue);
+    border-radius: 4px;
+    width: 100%;
+}

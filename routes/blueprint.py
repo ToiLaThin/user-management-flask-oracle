@@ -8,12 +8,15 @@ blueprint.route('/create', methods=['GET','POST'])(dba_ctrl.create_account)
 blueprint.route('/delete', methods=['GET','POST'])(dba_ctrl.delete_account)
 blueprint.route('/login', methods=['GET','POST'])(user_ctrl.login)
 blueprint.route('/logout', methods=['GET'])(user_ctrl.logout)
+
 blueprint.route('/users', methods=['GET'])(user_ctrl.get_user_accounts)
 blueprint.route('/infos', methods=['GET'])(user_ctrl.get_account_infos)
+
 blueprint.route('/list', methods=['GET'])(dba_ctrl.list_users)
 blueprint.route('/detail', methods=['GET', 'POST'])(dba_ctrl.detail_user)
 blueprint.route('/update_privs_user', methods=['POST'])(dba_ctrl.update_privs_user)
 blueprint.route('/lock_unlock_user/<string:astatus>/<string:username>', methods=['GET'])(dba_ctrl.lock_unlock_user)
+
 blueprint.route('/list_profiles', methods=['GET'])(dba_ctrl.list_profiles)
 blueprint.route('/detail_profile/<string:pf_name>', methods=['GET'])(dba_ctrl.detail_profile)
 blueprint.route('/update_profile', methods=['POST'])(dba_ctrl.update_profile)

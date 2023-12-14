@@ -1,0 +1,29 @@
+.horizontal_navbar {
+    background-color: var(--clr-secondary-light);
+    box-shadow: 0 0 10px var(--clr-shadow);
+}
+
+.p-relative {
+    position: relative;
+}
+
+.horizontal_navbar a.dropdown {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: -1rem;
+    background-color: var(--clr-primary-light);
+    min-width: 160px;
+    min-height: 200px;
+    box-shadow: 0 0 10px var(--clr-shadow);
+    z-index: 1;
+}
+
+.p-relative:hover .dropdown-content{
+    display: block;
+}

@@ -63,6 +63,18 @@ class IdleTimeEnum(Enum):
     DEFAULT = "DEFAULT"
     CUSTOM = "30"
 
+# named tuple user info
+from collections import namedtuple
+UserInfoOracle = namedtuple('UserInfoOracle', ['username', \
+                                   'account_status', \
+                                   'lock_date', \
+                                   'created', \
+                                   'default_tablespace', \
+                                   'temporary_tablespace', \
+                                   'profile', \
+                                   'granted_role', \
+                                   'admin_option'])
+
 def authentication_check_decorator(func):
     """sumary_line
     Decorator to check if user logged in or not
@@ -95,7 +107,7 @@ def authorization_check_decorator(role_names:list):
             
         
     return outer_wrapper
-
+            
 DBA_ROLE_NAME = "DBA"
 MANAGER_ROLE_NAME = "R_MANAGER"
 EMPLOYEE_ROLE_NAME = "R_EMPLOYEE"

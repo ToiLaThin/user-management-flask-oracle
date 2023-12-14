@@ -6,17 +6,32 @@
     <title>User Management</title>
     {% block styles %}
         <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/hnav.css') }}">
     {% endblock %}
+    <script src="https://kit.fontawesome.com/4c8f96e5e8.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>User Management</h1>
+    {% if auth_manager.is_logged_in == true %}
+    <div class="header mb-3">
+        <!-- <h1>User Management</h1> -->
+        {% include "hnav.html" %}
     </div>
+    {% endif %}
     <div class="body">
         {% block content %}
         {% endblock %}
     </div>
     {% block scripts %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <script>
+                    alert("{{ message }}");
+                </script>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     {% endblock %}
 </body>
 </html>

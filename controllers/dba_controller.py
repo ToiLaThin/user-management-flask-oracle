@@ -85,11 +85,27 @@ def list_users():
             WHERE REGEXP_LIKE (USERNAME ,'^U_.*$')
         """
         df_users = pd.read_sql_query(text(query), singleton_auth_manager.db_instance.engine)
-        print(df_users)
+        # print(df_users)
         df_users['granted_role'] = df_users['granted_role'].groupby(df_users['username']).transform(lambda x: ','.join(x))
         df_users.drop_duplicates(subset=['username'], inplace=True) # 2 row is the same, since the above query modify the granted_role column
-        html = df_users.to_html(classes='data', header="true")
-        return render_template('admin/user_list.html', table=html)
+        
+        user_info_orcl_list = []
+        from utils.globals import UserInfoOracle
+        for _, row in df_users.iterrows():
+            username = row['username']
+            account_status = row['account_status']
+            lock_date = row['lock_date']
+            created = row['created']
+            default_tablespace = row['default_tablespace']
+            temporary_tablespace = row['temporary_tablespace']
+            profile = row['profile']
+            granted_role = row['granted_role']
+            admin_option = row['admin_option']
+
+            user_info_orcl = UserInfoOracle(username, account_status, lock_date, created, default_tablespace, temporary_tablespace, profile, granted_role, admin_option)
+            user_info_orcl_list.append(user_info_orcl)
+        print(user_info_orcl_list)
+        return render_template('admin/user_list.html', user_info_orcl_list=user_info_orcl_list)
     
 @authentication_check_decorator
 @authorization_check_decorator([DBA_ROLE_NAME])

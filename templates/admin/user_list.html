@@ -1,10 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    {{table | safe}}
-</body>
-</html>
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+{% endblock %}
+{% block content_side_nav %}
+    {% include "snav_admin.html"%}
+{% endblock %}
+{% block content_main %}
+    <table>
+        <tr>
+            <th>username</th>
+            <th>account_status</th>
+            <th>lock_date</th>
+            <th>created</th>
+            <th>default_tablespace</th>
+            <th>temporary_tablespace</th>
+            <th>profile</th>
+            <th>granted_role</th>
+            <th>admin_option</th>
+        </tr>
+    {% for user_info_orcl in user_info_orcl_list%}
+        <tr>
+            <td>
+                <a href="{{ url_for('blueprint.detail_user', username=user_info_orcl.username
+                                            , userpf=user_info_orcl.profile
+                                            , userrole=user_info_orcl.granted_role
+                                            , account_status=user_info_orcl.account_status) }}"
+                >
+                    {{user_info_orcl.username}}
+                </a>
+            </td>
+            <td>{{user_info_orcl.account_status}}</td>
+            <td>{{user_info_orcl.lock_date}}</td>
+            <td>{{user_info_orcl.created}}</td>
+            <td>{{user_info_orcl.default_tablespace}}</td>
+            <td>{{user_info_orcl.temporary_tablespace}}</td>
+            <td>{{user_info_orcl.profile}}</td>
+            <td>{{user_info_orcl.granted_role}}</td>
+            <td>{{user_info_orcl.admin_option}}</td>
+        </tr>
+        <br>
+    {% endfor %}
+    </table>
+{% endblock %}

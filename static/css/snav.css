@@ -1,0 +1,19 @@
+.right {
+    width: 100%;
+}
+.left {
+    min-width: 200px;
+    width: auto;
+}
+
+.snav {
+    width: auto;
+    min-width: 200px;
+    height: 100vh;
+
+    padding: var(--p-2) var(--p-4) var(--p-2) var(--p-2);
+    background-color: var(--clr-secondary-light);
+    border: 1px solid var(--clr-secondary-dark);
+    border-radius: 0 0.5rem 0 0;
+
+}

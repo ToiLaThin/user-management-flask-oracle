@@ -6,56 +6,66 @@
   {% endblock %}
 <!--{{ super() }} to render the content in the styles block of base.html-->
 {% block content %}
-  <form method="post">
-      <div class="container">
-        <div class="form-group">
-          <label for="username"><b>Username</b></label>
-          <input type="text" placeholder="Enter Username" name="username" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="psw"><b>Password</b></label>
-          <input type="password" placeholder="Enter Password" name="password" required>
-        </div>
+<form method="post">
+  <div class="container" style="min-width: 500px; max-width: 800px;">
+        <h2>Create Account</h2>
+        <div class="d-flex flex-row flex-jc-sa">
+          <div class="col">
+            <div class="form-group">
+              <div>
+                <img src="{{ url_for('static', filename='images/avatar.jpg') }}" alt="Avatar" class="avatar">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="username"><b>Username</b></label>
+              <input type="text" placeholder="Enter Username" name="username" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="psw"><b>Password</b></label>
+              <input type="password" placeholder="Enter Password" name="password" required>
+            </div>
+          </div>
+          <!-- End of one col-->
 
-        <div class="form-group">  
-          <label for="tbs"><b>Choose TBS</b></label>
-          <select name="tbs_name">
-            {% for tbs in tbs_list %}          
-              <option value="{{ tbs }}">{{ tbs }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="form-group">  
-          <label for="quota"><b>Input quota</b></label>
-          <input type="number" placeholder="Enter quota" name="quota" required>
-        </div>
-
-        <div class="form-group">  
-          <label for="profile"><b>Choose TBS</b></label>
-          <select name="pf_name">
-            {% for pf in profile_list %}          
-              <option value="{{ pf }}">{{ pf }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        
-        <div class="form-group">  
-          <label for="role"><b>Choose Role</b></label>
-          <select name="r_name">
-            {% for r in role_list %}          
-              <option value="{{ r }}">{{ r }}</option>
-            {% endfor %}
-          </select>
+          <div class="col">
+            <div class="form-group">  
+              <label for="tbs"><b>Choose TBS</b></label>
+              <select name="tbs_name">
+                {% for tbs in tbs_list %}          
+                  <option value="{{ tbs }}">{{ tbs }}</option>
+                {% endfor %}
+              </select>
+            </div>
+    
+            <div class="form-group">  
+              <label for="quota"><b>Input quota</b></label>
+              <input type="number" placeholder="Enter quota" name="quota" required>
+            </div>
+    
+            <div class="form-group">  
+              <label for="profile"><b>Choose TBS</b></label>
+              <select name="pf_name">
+                {% for pf in profile_list %}          
+                  <option value="{{ pf }}">{{ pf }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="form-group">  
+              <label for="role"><b>Choose Role</b></label>
+              <select name="r_name">
+                {% for r in role_list %}          
+                  <option value="{{ r }}">{{ r }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
         </div>
         <button type="submit">Create account</button>
-      </div>
-    
-      <div class="container" style="background-color:#f1f1f1">
-        <button type="button" class="cancelbtn">Cancel</button>
-        <span class="psw">Already have an account? <a href="{{ url_for('blueprint.login') }}">Login</a></span>
-        <span class="psw">Forgot <a href="#">password?</a></span>
+        
+
+        
       </div>
   </form>
 {% endblock %}

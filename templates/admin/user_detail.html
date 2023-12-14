@@ -1,81 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2 Column Layout</title>
+{% extends 'base_with_snav.html' %}    
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/accordion.css') }}">
     <style>
-        * {
-            box-sizing: border-box;
-        }
         .row { display: flex; }
-        .column {
-            flex: 50%;
-            padding: 10px;
+        .column { flex: 50%; padding: 10px; }
+        .apply-btn {             
+            margin: auto;
+            width: 100%; 
+            padding: var(--p-2) 20px; 
+
+            background-color: var(--clr-primary-green); 
+            color: var(--clr-primary-light); 
+            opacity: 0.9; 
+
+            cursor: pointer; 
+            transition: 0.3s;
         }
+        .apply-btn:hover { opacity: 1; }
+        h3 { font-weight: bold; }
     </style>
-</head>
-<body>
-    <h3>Privs Through Role: {{userrole}}</h3>
-    <div class="row">
-        <div class="column">
-            <h4>Obj Privs</h4>
-            {% for role_obj_priv in user_role_tab_privs_arr %}
-                <p style="color: red;">{{ role_obj_priv }}</p>
-            {% endfor %}
-            {% for role_obj_priv_not_applied in user_role_tab_privs_arr_not_applied %}
-                <p>{{ role_obj_priv_not_applied }}</p>
-            {% endfor %}
-        </div>
-        <div class="column">
-            <h4>Sys Privs</h4>
-            {% for role_sys_priv in user_role_sys_privs_arr %}
-                <p style="color: red;">{{ role_sys_priv }}</p>
-            {% endfor %}
-            {% for role_sys_priv_not_applied in user_role_sys_privs_arr_not_applied %}
-                <p>{{ role_sys_priv_not_applied }}</p>
-            {% endfor %}
+{% endblock %}
+{% block content_side_nav%}
+    {% include 'snav_admin.html' %}
+{% endblock %}
+{% block content_main %}
+    <button class="accordion-btn">Privs Through Role: {{userrole}}</button>
+    <div class="accordion-content">
+        <div class="row">
+            <div class="column">
+                <h3>Obj Privs</h3>
+                {% for role_obj_priv in user_role_tab_privs_arr %}
+                    <p style="color: red;">{{ role_obj_priv }}</p>
+                {% endfor %}
+                {% for role_obj_priv_not_applied in user_role_tab_privs_arr_not_applied %}
+                    <p>{{ role_obj_priv_not_applied }}</p>
+                {% endfor %}
+            </div>
+            <div class="column">
+                <h3>Sys Privs</h3>
+                {% for role_sys_priv in user_role_sys_privs_arr %}
+                    <p style="color: red;">{{ role_sys_priv }}</p>
+                {% endfor %}
+                {% for role_sys_priv_not_applied in user_role_sys_privs_arr_not_applied %}
+                    <p>{{ role_sys_priv_not_applied }}</p>
+                {% endfor %}
+            </div>
         </div>
     </div>
     <br>
-    <h3>Privs Directly to user</h3>
-    <div class="row">
-        <div class="column">
-            <h4>Obj Privs</h4>
-            {% for user_obj_priv in user_tab_privs_arr %}
-                <div>
-                    <span class="tab_priv">{{ user_obj_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_obj_priv }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
-            {% for user_obj_priv_not_applied in user_tab_privs_arr_not_applied %}
-                <div>
-                    <span class="tab_priv">{{ user_obj_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_obj_priv_not_applied }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
+    <button class="accordion-btn">Privs Directly to user</button>
+    <div class="accordion-content">
+        <div class="row">
+            <div class="column">
+                <h3>Obj Privs</h3>
+                {% for user_obj_priv in user_tab_privs_arr %}
+                    <div>
+                        <span class="tab_priv">{{ user_obj_priv }}</span>
+                        <input checked type="checkbox" value="{{ user_obj_priv }}" class="priv"></input>
+                        <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                    </div>
+                {% endfor %}
+                {% for user_obj_priv_not_applied in user_tab_privs_arr_not_applied %}
+                    <div>
+                        <span class="tab_priv">{{ user_obj_priv_not_applied }}</span>
+                        <input type="checkbox" value="{{ user_obj_priv_not_applied }}" class="priv"></input>
+                        <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="column">
+                <h3>Sys Privs</h3>
+                {% for user_sys_priv in user_sys_privs_arr %}
+                    <div>
+                        <span class="tab_priv">{{ user_sys_priv }}</span>
+                        <input checked type="checkbox" value="{{ user_sys_priv }}" class="priv"></input>
+                        <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                    </div>
+                {% endfor %}
+                {% for user_sys_priv_not_applied in user_sys_privs_arr_not_applied %}
+                    <div>
+                        <span class="tab_priv">{{ user_sys_priv_not_applied }}</span>
+                        <input type="checkbox" value="{{ user_sys_priv_not_applied }}" class="priv"></input>
+                        <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
+                    </div>
+                {% endfor %}
+            </div>        
         </div>
-        <div class="column">
-            <h4>Sys Privs</h4>
-            {% for user_sys_priv in user_sys_privs_arr %}
-                <div>
-                    <span class="tab_priv">{{ user_sys_priv }}</span>
-                    <input checked type="checkbox" value="{{ user_sys_priv }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
-            {% for user_sys_priv_not_applied in user_sys_privs_arr_not_applied %}
-                <div>
-                    <span class="tab_priv">{{ user_sys_priv_not_applied }}</span>
-                    <input type="checkbox" value="{{ user_sys_priv_not_applied }}" class="priv"></input>
-                    <!-- With grant checkbox (will be create in js), if this is checked, user can grant this privs to other user -->
-                </div>
-            {% endfor %}
-        </div>        
+        <button class="apply-btn">Apply</button>
     </div>
-    <button class="apply-btn">Apply</button>
+    <br>
+    
+    <button class="accordion-btn">Profile: {{userpf}}</button>
+    <div class="accordion-content">
+        {% for key, value in pf_resource_dict.items() %}
+        <p>{{ key }}: {{ value }}</p>
+        {% endfor %}
+    </div>
     <br>
     <div>
         <h3>Account Status: {{account_status}}</h3>
@@ -89,11 +110,9 @@
             </button>
         {% endif %}
     </div>
-    <br>
-    <h3>Profile: {{userpf}}</h3>
-    {% for key, value in pf_resource_dict.items() %}
-        <p>{{ key }}: {{ value }}</p>
-    {% endfor %}
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
     <script>
         
         function applySelectedPrivs() {
@@ -192,5 +211,20 @@
         
         document.querySelector('button.apply-btn').addEventListener('click', applySelectedPrivs);
     </script>
-</body>
-</html>
+    <script>
+        let accordionBtns = document.getElementsByClassName("accordion-btn");
+        let i;
+        for (i = 0; i < accordionBtns.length; i++) {
+            accordionBtns[i].addEventListener("click", function() { 
+                this.classList.toggle("active");
+                var accordionContent = this.nextElementSibling;
+                if (accordionContent.style.display === "block") { 
+                    accordionContent.style.display = "none"; 
+                } 
+                else { 
+                    accordionContent.style.display = "block"; 
+                }
+            });
+        }
+    </script>
+{% endblock %}

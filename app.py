@@ -1,6 +1,6 @@
 from flask import Flask
 from routes.blueprint import blueprint
-from utils.globals import Base
+from utils.globals import Base, singleton_auth_manager
 from utils.queries import CREATE_ROLE_MANAGER_QUERY, CREATE_ROLE_EMPLOYEE_QUERY, \
     SET_RESOURCE_LIMIT_QUERY, SET_SESSION_CONTAINER_QUERY, \
     CREATE_PROFILE_MANAGER_QUERY, CREATE_PROFILE_EMPLOYEE_QUERY, \
@@ -93,5 +93,13 @@ def create_app():
 app = create_app()
 app.secret_key = 'super secret key'
 app.register_blueprint(blueprint)
+
+@app.context_processor
+def inject_auth_manager_to_template_preprocessor():
+    """sumary_line
+    Decorator to inject auth manager to template for every request
+    """
+    return dict(auth_manager=singleton_auth_manager)
+
 if __name__ == "__main__":    
     app.run(port=5000, debug=True)

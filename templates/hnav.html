@@ -1,0 +1,16 @@
+<nav class="horizontal_navbar container">
+    <div class="d-flex flex-row flex-jc-sb">
+        <div><a href="#">USER MANAGERMENT</a></div>
+        <div class="d-flex flex-row flex-jc-sb flex-ali-center" style="gap: .5rem">
+            <div>
+                <p id="urole">Role: {{auth_manager.roles}}</p>
+            </div>
+            <div class="p-relative">
+                <p id="uname">User: <a href="#" class="dropdown">{{auth_manager.db_instance.username}}</a></p>
+                <div class="dropdown-content">
+                    <a href="{{url_for('blueprint.logout')}}">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>    
