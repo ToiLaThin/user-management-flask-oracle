@@ -1,6 +1,6 @@
 <nav class="horizontal_navbar container">
     <div class="d-flex flex-row flex-jc-sb">
-        <div><a href="#">USER MANAGERMENT</a></div>
+        <h2><a href="{{url_for('blueprint.index')}}">USER MANAGERMENT</a></h2>
         <div class="d-flex flex-row flex-jc-sb flex-ali-center" style="gap: .5rem">
             <div>
                 <p id="urole">Role: {{auth_manager.roles}}</p>

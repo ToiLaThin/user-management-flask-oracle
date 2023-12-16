@@ -7,6 +7,11 @@
     {% include "snav_admin.html"%}
 {% endblock %}
 {% block content_main %}
+    <button>
+        <a href="{{url_for('blueprint.create_account')}}">
+        <i class="fas fa-plus"></i> Add New User
+        </a>
+    </button>
     <table>
         <tr>
             <th>username</th>

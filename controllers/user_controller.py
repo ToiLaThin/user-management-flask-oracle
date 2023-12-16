@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from flask import render_template
+from flask import flash, render_template, url_for
 from flask import request
 from database.oracle_db import OracleDb
 from services.user_service import add_user as srv_add_user
@@ -14,6 +14,17 @@ from utils.queries import SET_SESSION_CONTAINER_QUERY, \
             SELECT_DBA_TABLESPACES_QUERY, \
             SELECT_DBA_PROFILES_QUERY
 from werkzeug.security import generate_password_hash
+
+def index():
+    """Entry point to the app depend on the auth manager state"""
+    if singleton_auth_manager.is_logged_in == True:
+        if singleton_auth_manager.is_dba == True:
+            return redirect(url_for('blueprint.list_users'))
+        else:
+            return redirect(url_for('blueprint.get_user_accounts'))
+    else:
+        return redirect(url_for('blueprint.login'))    
+
 def login():
     """Login to an existing user account."""    
     if request.method == 'GET' and singleton_auth_manager.is_logged_in == False:        
@@ -40,7 +51,7 @@ def login():
             singleton_auth_manager.db_instance.connect() 
         except Exception as e:
             singleton_auth_manager.logout()
-            return f"Login failed: {e}"
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
         
         with singleton_auth_manager.db_instance.engine.connect(): #login success
             role_result = singleton_auth_manager.db_instance.conn.execute(text(SELECT_USER_ROLE_QUERY))
@@ -49,13 +60,15 @@ def login():
                 if row[0] == "DBA":
                     singleton_auth_manager.is_dba = True
                 singleton_auth_manager.roles.append(row[0])
-        return singleton_auth_manager.db_instance.__repr__() + " " + str(singleton_auth_manager.is_logged_in)
+        flash(f"Logged in successfully with conn: {singleton_auth_manager.db_instance.__repr__() + str(singleton_auth_manager.is_logged_in)}", "success")
+        return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently, 302 is for redirect temporarily, 301 we can redirect from get to post method
     
 @authentication_check_decorator
 def logout():
     """Logout from an existing user account."""
     singleton_auth_manager.logout()
-    return "User Logged out"
+    flash("Logged out successfully.", "success")
+    return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently
 
 @authentication_check_decorator
 def get_user_accounts():
@@ -114,7 +127,7 @@ def user_account_list():
                 print(row)
                 user_account_tuple_list.append(row)
         except Exception as e:
-            return "Error: " + str(e)
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
         return render_template('user/user_account_list.html', user_account_tuple_list=user_account_tuple_list)
     
 from flask import redirect, url_for
@@ -135,7 +148,7 @@ def user_account_create():
                 conn.execute(text(insert_user_test_table_query))
                 conn.commit()
             except Exception as e:
-                return "Error: " + str(e)
+                return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
         return redirect(url_for('blueprint.user_account_list'))
     
 @authentication_check_decorator
@@ -148,7 +161,7 @@ def user_account_delete(userid):
             conn.execute(text(delete_user_test_table_query))
             conn.commit()
         except Exception as e:
-            return "Error: " + str(e)
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
     return redirect(url_for('blueprint.user_account_list'))
 
 @authentication_check_decorator
@@ -184,7 +197,7 @@ def grant_privs_user_list():
                 username_list.append(uname)
 
         except Exception as e:
-            return "Error: " + str(e)
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
         print(sys_privs_current_logged_in_user_can_grant_list)
         print(tab_privs_current_logged_in_user_can_grant_list)
         return render_template('user/grant_privs_user_list.html', username_list=username_list, \
@@ -240,7 +253,7 @@ def grant_priv_user_detail(grantor:str, grantee:str):
                 tab_privs_current_logged_in_user_can_grant_list.append(full_tab_priv_name)
 
         except Exception as e:
-            return "Error: " + str(e)
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
         
         grantee_sys_privs_not_granted_list = [spriv for spriv in sys_privs_current_logged_in_user_can_grant_list \
                                                 if spriv not in priv_with_grant_option_lookup_dict]
