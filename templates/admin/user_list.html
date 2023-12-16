@@ -23,6 +23,7 @@
             <th>profile</th>
             <th>granted_role</th>
             <th>admin_option</th>
+            <th>actions</th>
         </tr>
     {% for user_info_orcl in user_info_orcl_list%}
         <tr>
@@ -43,6 +44,9 @@
             <td>{{user_info_orcl.profile}}</td>
             <td>{{user_info_orcl.granted_role}}</td>
             <td>{{user_info_orcl.admin_option}}</td>
+            <td><a href="{{ url_for('blueprint.delete_account', username=user_info_orcl.username) }}">
+                <i class="fas fa-trash"></i> - Delete
+            </a></td>
         </tr>
         <br>
     {% endfor %}

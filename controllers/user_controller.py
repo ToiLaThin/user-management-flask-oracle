@@ -32,7 +32,8 @@ def login():
     else:
         if singleton_auth_manager.is_logged_in == True:
             print(singleton_auth_manager.db_instance.engine)
-            return "User already logged in with connection: " + singleton_auth_manager.db_instance.__repr__()
+            flash("User already logged in with connection: " + singleton_auth_manager.db_instance.__repr__())
+            return redirect(url_for('blueprint.index'))
         username = request.form.get('username')
         password = request.form.get('password')
         password_hashed = generate_password_hash(password, method=HASHED_METHOD)
@@ -68,7 +69,7 @@ def logout():
     """Logout from an existing user account."""
     singleton_auth_manager.logout()
     flash("Logged out successfully.", "success")
-    return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently
+    return redirect(url_for('blueprint.index'))
 
 @authentication_check_decorator
 def get_user_accounts():
@@ -321,4 +322,5 @@ def grant_priv_user_update():
         print(grant_query)
         singleton_auth_manager.db_instance.conn.execute(text(grant_query))
         singleton_auth_manager.db_instance.conn.commit()
-    return "Update success"
+    flash(f"Grant privs to user {username} successfully.", "success")
+    return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently'))

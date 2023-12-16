@@ -1,15 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <style>
+        .form-group{
+            margin: 10px 0;
+        }
+        .form-group {
+            width: 60%;
+            padding: 5px;
+        }
+        button[type="submit"] {
+            width: 60%;
+        }
+    </style>
+{% endblock %}
+{% block content_side_nav%}
+    {% include 'snav_admin.html' %}
+{% endblock %}
+{% block content_main %}
     <form method="POST" action="{{url_for('blueprint.user_account_create')}}">
-        <label for="username">To Insert To Test Table username: </label>
-        <input id="username" type="text" name="username" placeholder="Enter username: ">
+        <div class="form-group">
+            <label for="username">To Insert To Test Table username: </label>
+            <input id="username" type="text" name="username" placeholder="Enter username: ">
+        </div>
         <button type="submit">Submit</button>
     </form>
-</body>
-</html>
+{% endblock %}
+    

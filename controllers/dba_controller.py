@@ -49,23 +49,32 @@ def create_account():
         r_name = request.form.get('r_name')
         print(username, hashed_password, tbs_name,pf_name, quota) #oracle hash password already, so we don't need to hash it again
         if srv_check_user_not_exist(username) == True:
-            srv_add_user(username, password,tbs_name, quota, pf_name, r_name)
-            return "created_account, please check database"
+            try:
+                srv_add_user(username, password,tbs_name, quota, pf_name, r_name)
+            except Exception as e:
+                flash(f"Error: {e}")
+                return redirect(url_for('blueprint.create_account'), code=301)
+            flash(f"Created user {username}. Please check database", "success")
+            return redirect(url_for('blueprint.index'), code=301)
         else:
-            return f"user {username} is already exist"
+            flash(f"user {username} is already exist")
+            return redirect(url_for('blueprint.create_account'), code=301)
     
 @authentication_check_decorator
 @authorization_check_decorator([DBA_ROLE_NAME])
-def delete_account():    
+def delete_account(username: str):    
     """Delete an existing user account."""
-    if request.method == 'GET':
-        return render_template('auth/delete_account.html')
-    else:
-        username = request.form.get('username')
-        if srv_check_user_valid(username) == True:
-            print(f"user {username} is valid")
+    if srv_check_user_valid(username) == True:
+        print(f"user {username} is valid")
+        username = username[2:] # remove U_ prefix
+        try:
             srv_delete_user(username)
-        return "account deleted"
+        except Exception as e:
+            print("Exception:", e)
+            flash(f"Error: {e}")
+            return redirect(url_for('blueprint.index'), code=301)
+    flash(f"Account deleted", "success")
+    return redirect(url_for('blueprint.index'), code=301)
     
 
 @authentication_check_decorator
