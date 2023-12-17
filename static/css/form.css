@@ -39,6 +39,7 @@ button[type="submit"] {
     font-weight: var(--fw-bold);
 
     text-transform: uppercase;
+    cursor: pointer;
 }
 
 select {

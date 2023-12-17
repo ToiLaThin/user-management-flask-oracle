@@ -399,3 +399,166 @@ def update_profile():
         """
         singleton_auth_manager.db_instance.conn.execute(text(query))
     return redirect(url_for('blueprint.list_profiles'))
+
+
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def get_all_roles():
+    from utils.queries import SELECT_USER_ROLE_QUERY
+    """Get a list of all roles on the system."""
+    with singleton_auth_manager.db_instance.engine.connect():
+        roles_result = singleton_auth_manager.db_instance.conn.execute(text(SELECT_DBA_ROLES_QUERY))
+        roles_list = [row[0] for row in roles_result if row[0].lower().startswith('r')]
+    return render_template('/admin/roles.html', roles_list = roles_list )
+
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def get_role_info(selected_role):    
+    """Get information about a specific role, its privileges, and users with that role."""
+    query_check_role_have_password = f"SELECT PASSWORD_REQUIRED FROM DBA_ROLES WHERE ROLE = '{selected_role}'"
+    role_have_password = False
+
+    with singleton_auth_manager.db_instance.engine.connect() :
+        role_sys_privs_result = singleton_auth_manager.db_instance.conn.execute(
+            text(f"SELECT PRIVILEGE FROM DBA_SYS_PRIVS WHERE GRANTEE = '{selected_role}'")
+        )
+        role_tab_privs_result = singleton_auth_manager.db_instance.conn.execute(
+            text(f"SELECT PRIVILEGE FROM DBA_TAB_PRIVS WHERE GRANTEE = '{selected_role}'")
+        )
+        users_with_role_result = singleton_auth_manager.db_instance.conn.execute(
+            text(f"SELECT GRANTEE FROM DBA_ROLE_PRIVS WHERE GRANTED_ROLE = '{selected_role}' AND GRANTEE LIKE 'U_%'")
+        )
+        role_have_password_result = singleton_auth_manager.db_instance.conn.execute(text(query_check_role_have_password)).fetchone()
+        if role_have_password_result[0] == 'YES':
+            role_have_password = True
+        else:
+            role_have_password = False
+        print(role_have_password)        
+
+        role_sys_privs_granted_list = []
+        role_tab_privs_granted_list = []
+        users_with_role_list = []
+
+        for row in role_sys_privs_result:
+            role_sys_privs_granted_list.append(row[0])
+        for row in role_tab_privs_result:
+            role_tab_privs_granted_list.append(row[0])            
+        for row in users_with_role_result:
+            users_with_role_list.append(row[0])
+
+        all_sys_privs = [
+                'CREATE PROFILE', 'ALTER PROFILE', 'DROP PROFILE',\
+                'CREATE USER', 'ALTER USER', 'DROP USER',\
+                'CREATE SESSION',\
+                'CREATE ROLE', 'ALTER ANY ROLE', 'DROP ANY ROLE', 'GRANT ANY ROLE'\
+                'CREATE ANY TABLE', 'ALTER ANY TABLE', 'DROP ANY TABLE', 'CREATE TABLE'\
+                'SELECT ANY TABLE', 'DELETE ANY TABLE', 'INSERT ANY TABLE', 'UPDATE ANY TABLE'
+            ]
+        
+        from utils.globals import TEST_TABLE_NAME
+        all_tab_privs = [
+            f'SELECT ON {TEST_TABLE_NAME}', f'DELETE ON {TEST_TABLE_NAME}',\
+            f'INSERT ON {TEST_TABLE_NAME}', f'UPDATE ON {TEST_TABLE_NAME}'
+        ]
+    return render_template('/admin/role_info.html', 
+                           role = selected_role, 
+                           role_have_password = role_have_password,
+                           role_sys_privs_granted_list= role_sys_privs_granted_list, 
+                           role_tab_privs_granted_list = role_tab_privs_granted_list, 
+                           all_sys_privs = all_sys_privs, 
+                           all_tab_privs = all_tab_privs, 
+                           users_with_role_list = users_with_role_list)
+
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def update_privs_role():
+    """
+    Revoke all privs of a role, both tab and sys privs. 
+    Then grant all checked privs via AJAX
+    """
+    role = request.json['role'] # this username already has U_ prefix
+    role = role[2:]
+    privileges_to_grant = request.json['privileges']
+    print(privileges_to_grant)
+
+    grant_all_privs_query = f"GRANT ALL PRIVILEGES TO R_{role.upper()}"
+    revoke_all_privs_query = f"REVOKE ALL PRIVILEGES FROM R_{role.upper()}"
+    grant_priv_query = """GRANT {priv} TO R_{role}"""
+
+    print(singleton_auth_manager.db_instance)
+    singleton_auth_manager.db_instance.conn.execute(text(grant_all_privs_query)) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
+    singleton_auth_manager.db_instance.conn.execute(text(revoke_all_privs_query))
+
+    for priv in privileges_to_grant:
+        grant_query = grant_priv_query.format(priv=priv, role=role.upper())
+        print(grant_query)
+        singleton_auth_manager.db_instance.conn.execute(text(grant_query))
+
+    return redirect(
+        url_for('blueprint.get_role_info', 
+                selected_role=role)
+    )
+
+
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def update_user_role():
+    if request.method == 'GET':
+        username = request.args.get('username')
+        role = request.args.get('role')
+        all_roles_list = []
+        with singleton_auth_manager.db_instance.engine.connect():
+            roles_result = singleton_auth_manager.db_instance.conn.execute(text(SELECT_DBA_ROLES_QUERY))
+            all_roles_list = [row[0] for row in roles_result if row[0].lower().startswith('r')]
+        current_role = role
+        return render_template('admin/update_user_role.html'\
+                               , username=username\
+                               , current_role=current_role\
+                               , all_roles_list=all_roles_list)
+    else:
+        username = request.form.get('username')
+        username = username[2:] # remove U_ prefix
+        current_role = request.form.get('current_role')
+        selected_role = request.form.get('selected_role')
+        print(username, selected_role)
+        with singleton_auth_manager.db_instance.engine.connect():
+            singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
+            # revoke old role first
+            revoke_role_query = f"REVOKE {current_role} FROM U_{username}"
+            grant_role_query = f"GRANT {selected_role} TO U_{username}"
+            singleton_auth_manager.db_instance.conn.execute(text(revoke_role_query))
+            singleton_auth_manager.db_instance.conn.execute(text(grant_role_query))
+        return redirect(url_for('blueprint.get_role_info', selected_role=selected_role), code=301)
+    
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def enable_role_pwd():
+    """Enable role password."""
+    role = request.form.get('role')
+    password = request.form.get('password')
+    query_enable_role_pwd = f"ALTER ROLE {role} IDENTIFIED BY {password}"
+    with singleton_auth_manager.db_instance.engine.connect():
+        singleton_auth_manager.db_instance.conn.execute(text(query_enable_role_pwd))
+        singleton_auth_manager.db_instance.conn.commit()
+        flash(f"Enabled role password for {role}", "success")
+    return redirect(url_for('blueprint.get_role_info', selected_role=role), code=301)
+
+@authentication_check_decorator
+@authorization_check_decorator([DBA_ROLE_NAME])
+def disable_or_update_role_pwd():
+    """Disable or update role password."""
+    role = request.form.get('role')
+    password = request.form.get('password')
+    if password == "" or password == None:
+        query_disable_role_pwd = f"ALTER ROLE {role} NOT IDENTIFIED"
+        with singleton_auth_manager.db_instance.engine.connect():
+            singleton_auth_manager.db_instance.conn.execute(text(query_disable_role_pwd))
+            singleton_auth_manager.db_instance.conn.commit()
+            flash(f"Disabled role password for {role}", "success")
+    else:
+        query_update_role_pwd = f"ALTER ROLE {role} IDENTIFIED BY {password}"
+        with singleton_auth_manager.db_instance.engine.connect():
+            singleton_auth_manager.db_instance.conn.execute(text(query_update_role_pwd))
+            singleton_auth_manager.db_instance.conn.commit()
+            flash(f"Updated role password for {role}", "success")
+    return redirect(url_for('blueprint.get_role_info', selected_role=role), code=301)

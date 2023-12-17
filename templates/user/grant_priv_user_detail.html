@@ -1,24 +1,32 @@
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2 Column Layout</title>
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
     <style>
-        * {
-            box-sizing: border-box;
-        }
         .row { display: flex; }
-        .column {
-            flex: 50%;
-            padding: 10px;
+        .column { flex: 50%; padding: 10px; }
+        .apply-btn {             
+            width: 100%; 
+            padding: var(--p-2) 20px; 
+            background-color: var(--clr-primary-blue);
+            color: var(--clr-primary-light);
+            cursor: pointer; 
+            opacity: 0.9; 
+            transition: 0.3s;
         }
+        .apply-btn:hover { opacity: 1; }
+        h3, h2 { font-weight: bold; }
     </style>
-</head>
-<body>    
-    <h3>{{grantee}} privs:</h3>
+{% endblock %}
+{% block content_side_nav %}
+    {% include "snav_user.html"%}
+{% endblock %}
+
+{% block content_main %}
+    <h2 style="text-transform:uppercase;">{{grantee}} 's privs:</h2>
     <div class="row">
         <div class="column">
-            <h4>Sys Privs</h4>
+            <h3>Sys Privs</h3>
             {% for grantee_sys_priv in grantee_sys_privs_granted_list %}
                 <div>
                     <span class="tab_priv">{{ grantee_sys_priv }}</span>
@@ -35,7 +43,7 @@
             {% endfor %}
         </div>
         <div class="column">
-            <h4>Obj Privs</h4>
+            <h3>Obj Privs</h3>
             {% for grantee_tab_priv in grantee_tab_privs_granted_list %}
                 <div>
                     <span class="tab_priv">{{ grantee_tab_priv }}</span>
@@ -52,9 +60,14 @@
             {% endfor %}
         </div>        
     </div>
-    <button class="apply-btn">Apply</button>
+    <div style="width: 80%; margin: auto; ">
+        <button class="apply-btn">Apply</button>
+    </div>
     <br>
-    
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
     <script>
         function applySelectedPrivs() {
             let all_checked_privs_with_grant_option = [];
@@ -149,5 +162,4 @@
         
         document.querySelector('button.apply-btn').addEventListener('click', applySelectedPrivs);
     </script>
-</body>
-</html>
+{% endblock %}

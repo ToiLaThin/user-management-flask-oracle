@@ -21,7 +21,7 @@ def index():
         if singleton_auth_manager.is_dba == True:
             return redirect(url_for('blueprint.list_users'))
         else:
-            return redirect(url_for('blueprint.get_user_accounts'))
+            return redirect(url_for('blueprint.user_account_list'))
     else:
         return redirect(url_for('blueprint.login'))    
 
@@ -72,48 +72,121 @@ def logout():
     return redirect(url_for('blueprint.index'))
 
 @authentication_check_decorator
-def get_user_accounts():
-    """Get all user accounts."""
-    from sqlalchemy import text
-    with singleton_auth_manager.db_instance.engine.connect() as conn:
-        result = conn.execute(text(f"SELECT * FROM {TEST_TABLE_NAME}"))
-        user_list = []
-        for row in result:
-            print(row)
-            user_list.append(row)
-        return "User accounts: " + str(user_list)
-
-@authentication_check_decorator
 def get_account_infos():
     """Get all account infos."""
     from sqlalchemy import text
+
+    username = singleton_auth_manager.db_instance.username
+    username = 'U_' + username.upper()
+
+    userrole = singleton_auth_manager.roles[0]
+    print("From get account info:", userrole)
+    query_user_privs_sys = f"SELECT PRIVILEGE FROM USER_SYS_PRIVS"
+    # select from user_tab_privs return not wanted priv, so use dba_tab_privs instead
+    query_user_privs_tab = f"SELECT PRIVILEGE FROM DBA_TAB_PRIVS WHERE GRANTEE = '{username}'"
+    query_role_privs_sys = f"SELECT PRIVILEGE FROM DBA_SYS_PRIVS WHERE GRANTEE = '{userrole}'"
+    query_role_privs_tab = f"SELECT PRIVILEGE FROM DBA_TAB_PRIVS WHERE GRANTEE = '{userrole}'"    
+    query_session_roles = f"SELECT ROLE FROM SESSION_ROLES"
+    query_session_privs = f"SELECT PRIVILEGE FROM SESSION_PRIVS"
+    query_tbs_quota = f"SELECT TABLESPACE_NAME, BYTES FROM USER_TS_QUOTAS"
+    query_profile_name = f"SELECT PROFILE FROM DBA_USERS WHERE USERNAME = '{username}'"
+    query_profile_info = """SELECT * FROM DBA_PROFILES WHERE PROFILE = '{profile_name}'"""
+    query_check_role_have_password = f"SELECT PASSWORD_REQUIRED FROM DBA_ROLES WHERE ROLE = '{userrole}'"
+    role_is_enabled = False
+    role_have_password = False
+
+    session_privs_list = []
+    account_role_list = []  
+    account_role_privs_list = []
+    account_privs_without_role_list = []
+    profile_info_dict = {}
+
+    
+
+    with OracleDb('sys', '123') as db:
+        #must use sys to get all privs
+        account_tab_privs_without_role_result = db.conn.execute(text(query_user_privs_tab))
+        role_sys_privs_result = db.conn.execute(text(query_role_privs_sys))
+        role_tab_privs_result = db.conn.execute(text(query_role_privs_tab))        
+        profile_name_result = db.conn.execute(text(query_profile_name)).fetchone()
+        profile_name = profile_name_result[0]
+        profile_info_result = db.conn.execute(text(query_profile_info.format(profile_name=profile_name)))
+                
+        for row in profile_info_result:
+            resource_name = row[1]
+            limit_value = row[2]
+            profile_info_dict[resource_name] = limit_value
+
+        role_have_password_result = db.conn.execute(text(query_check_role_have_password)).fetchone()
+        if role_have_password_result[0] == 'YES':
+            role_have_password = True
+        else:
+            role_have_password = False
+
+        
+        # if connection close (out of with), the result(cursor) will be gone, 
+        # so these must be done inside with
+        for row in role_sys_privs_result:
+            # print("From get account info:", row)
+            privilege = row[0]
+            account_role_privs_list.append(privilege)
+
+        for row in role_tab_privs_result:
+            # print("From get account info:", row)
+            privilege = row[0]
+            account_role_privs_list.append(privilege)
+
+        for row in account_tab_privs_without_role_result:
+            # print("From get account info:", row[0])
+            privilege_without_role = row[0]
+            account_privs_without_role_list.append(privilege_without_role)
+
+        
+
     with singleton_auth_manager.db_instance.engine.connect() as conn:
         roles_result = conn.execute(text(SELECT_USER_ROLE_QUERY))
-        role_privs_result = conn.execute(text("SELECT * FROM ROLE_ROLE_PRIVS WHERE ROLE = '{role}'"))
-        account_sys_privs_without_role_result = conn.execute(text("SELECT PRIVILEGE FROM USER_SYS_PRIVS"))
-        account_tab_privs_without_role_result = conn.execute(text("SELECT PRIVILEGE FROM USER_TAB_PRIVS"))
-        account_role_list = []
-        account_role_privs_list = []
-        account_privs_without_role_list = []
+        account_sys_privs_without_role_result = conn.execute(text(query_user_privs_sys))
+        account_session_roles_result = conn.execute(text(query_session_roles))
+        account_session_privs_result = conn.execute(text(query_session_privs))
+
         #can be made as functions and asynchronous
         for row in roles_result:
-            print(row[0]) #type la str
+            # print("From get account info:", row[0]) #type la str
             account_role_list.append(row[0])
-        for row in role_privs_result:
-            print(row)
-            account_role_privs_list.append(row)
 
         for row in account_sys_privs_without_role_result:
-            print(row[0])
-            account_privs_without_role_list.append(row[0])
-        for row in account_tab_privs_without_role_result:
-            print(row[0])
-            account_privs_without_role_list.append(row[0])
-    return f"""
-        Account role: " + {account_role_list}
-        Account role privs: " + {account_role_privs_list}     
-        Account privs without role: " + {account_privs_without_role_list}       
-    """
+            # print("From get account info:", row[0])
+            privilege_without_role = row[0]
+            account_privs_without_role_list.append(privilege_without_role)
+
+        for row in account_session_roles_result:
+            if row[0] == userrole:
+                role_is_enabled = True
+                break
+        
+        for row in account_session_privs_result:
+            session_priv = row[0]
+            print("From get account info:", session_priv)
+            session_privs_list.append(session_priv)
+
+        # when fetch one, result is a iterable object, so we can use iterator to get value
+        # each iter is a col, not a row
+        tbs_quota_result = conn.execute(text(query_tbs_quota)).fetchone()
+        iterator = tbs_quota_result.__iter__()
+        tbs_name = iterator.__next__()
+        tbs_quota = iterator.__next__()
+
+
+    return render_template('user/user_account_infos.html', \
+                            account_role_list=account_role_list, \
+                            account_role_privs_list=account_role_privs_list, \
+                            account_privs_without_role_list=account_privs_without_role_list, \
+                            session_privs_list=session_privs_list, \
+                            role_is_enabled=role_is_enabled, \
+                            role_have_password=role_have_password, \
+                            profile_info_dict=profile_info_dict, \
+                            profile_name=profile_name, \
+                            tbs_name=tbs_name, tbs_quota=tbs_quota)
 
 from utils.globals import TEST_TABLE_NAME
 @authentication_check_decorator
@@ -324,3 +397,38 @@ def grant_priv_user_update():
         singleton_auth_manager.db_instance.conn.commit()
     flash(f"Grant privs to user {username} successfully.", "success")
     return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently'))
+
+@authentication_check_decorator
+def disable_session_role():
+    """Disable a session role."""
+    disable_role_query = f"SET ROLE NONE"
+    with singleton_auth_manager.db_instance.engine.connect() as conn:
+        conn.execute(text(disable_role_query))
+        conn.commit()
+    print("Role set None")
+    return redirect(url_for('blueprint.get_account_infos'), code=301)
+
+@authentication_check_decorator
+def enable_session_role():
+    """Enable a session role."""
+    role = request.form.get('role')    
+    print("Role:", role)
+    enable_role_query = f"SET ROLE {role}"
+    with singleton_auth_manager.db_instance.engine.connect() as conn:
+        conn.execute(text(enable_role_query))
+        conn.commit()
+    return redirect(url_for('blueprint.get_account_infos'), code=301)
+
+@authentication_check_decorator
+def enable_session_role_with_password():
+    """Enable a session role with password."""
+    role = request.form.get('role')
+    password = request.form.get('password')
+    enable_role_query = f"SET ROLE {role} IDENTIFIED BY {password}"
+    with singleton_auth_manager.db_instance.engine.connect() as conn:
+        try:
+            conn.execute(text(enable_role_query))
+            conn.commit()
+        except Exception as e:
+            return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
+    return redirect(url_for('blueprint.get_account_infos'), code=301)

@@ -3,15 +3,18 @@ SET_SESSION_CONTAINER_QUERY = "ALTER SESSION SET CONTAINER = FREEPDB1"
 CREATE_ROLE_MANAGER_QUERY = "CREATE ROLE R_MANAGER"
 CREATE_ROLE_EMPLOYEE_QUERY = "CREATE ROLE R_EMPLOYEE"
 
+# change logical reads per session and call to 10000
+# to avoid ORA-02394: The current session exceeds IO usage limits; this session is being logged off.
+# "exceeded session limit on IO usage, you are being logged off"
 CREATE_PROFILE_MANAGER_QUERY = """
     CREATE PROFILE PF_MANAGER LIMIT 
         SESSIONS_PER_USER {session_per_user} 
-        CPU_PER_SESSION 1000 
-        CPU_PER_CALL 1000 
+        CPU_PER_SESSION 2000 
+        CPU_PER_CALL 2000 
         CONNECT_TIME {connect_time} 
         IDLE_TIME {idle_time}
-        LOGICAL_READS_PER_SESSION 1000 
-        LOGICAL_READS_PER_CALL 1000 
+        LOGICAL_READS_PER_SESSION 10000
+        LOGICAL_READS_PER_CALL 10000 
         PRIVATE_SGA 20K 
         COMPOSITE_LIMIT 1000 
         PASSWORD_LIFE_TIME 180 
@@ -25,12 +28,12 @@ CREATE_PROFILE_MANAGER_QUERY = """
 CREATE_PROFILE_EMPLOYEE_QUERY = """
     CREATE PROFILE PF_EMPLOYEE LIMIT
         SESSIONS_PER_USER {session_per_user} 
-        CPU_PER_SESSION 1000 
-        CPU_PER_CALL 1000 
+        CPU_PER_SESSION 2000 
+        CPU_PER_CALL 2000 
         CONNECT_TIME {connect_time} 
         IDLE_TIME {idle_time} 
-        LOGICAL_READS_PER_SESSION 1000 
-        LOGICAL_READS_PER_CALL 1000 
+        LOGICAL_READS_PER_SESSION 10000 
+        LOGICAL_READS_PER_CALL 10000 
         PRIVATE_SGA 20K 
         COMPOSITE_LIMIT 1000 
         PASSWORD_LIFE_TIME 180 

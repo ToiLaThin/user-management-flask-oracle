@@ -1,24 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User_To_Grant_Priv</title>
-</head>
-<body>
-    <h2>Privs {{grantor}} Can Grant:</h2>
-    <h3>Sys Privs: </h3>
-    {% for spriv in sys_privs_current_logged_in_user_can_grant_list %}
-        <p>{{ spriv }}</p>
-    {% endfor %}
-
-    <h3>Tab Privs: </h3>
-    {% for tpriv in tab_privs_current_logged_in_user_can_grant_list %}
-        <p>{{ tpriv }}</p>
-    {% endfor %}
-    <h2>You Can Grant Privs To These Users:</h2>
-    {% for username in username_list %}
-        <p><a href="{{url_for('blueprint.grant_priv_user_detail', grantor=grantor, grantee=username)}}">{{ username }}</a></p>
-    {% endfor %}
-</body>
-</html>
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{url_for('static', filename='css/table.css')}}">
+    <style>
+        h2 { font-weight: bold; }
+        .row { margin-bottom: var(--m-2); }
+    </style>
+{% endblock %}
+{% block content_side_nav %}
+    {% include "snav_user.html"%}
+{% endblock %}
+{% block content_main %}
+    <div class="row">
+        <h2>Privs {{grantor}} Can Grant:</h2>
+        <h3>Sys Privs: </h3>
+        {% if sys_privs_current_logged_in_user_can_grant_list == [] %}
+            <span>None</span>
+        {% else %}
+            <table>
+                <tr>
+                    <th>Privilege</th>
+                </tr>
+                {% for spriv in sys_privs_current_logged_in_user_can_grant_list %}
+                <tr>
+                    <td>{{ spriv }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+        
+        <h3>Tab Privs: </h3>
+        {% if tab_privs_current_logged_in_user_can_grant_list == [] %}
+            <span>None</span>
+        {% else %}
+            <table>
+                <tr>
+                    <th>Privilege</th>
+                </tr>
+                {% for tpriv in tab_privs_current_logged_in_user_can_grant_list %}
+                <tr>
+                    <td>{{ tpriv }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    </div>
+    <div class="row">
+        <h2>You Can Grant Privs To These Users:</h2>
+        <table>
+            <tr>
+                <th>Username</th>
+                <th>Detail</th>
+            </tr>
+            {% for username in username_list %}
+            <tr>
+                <td>{{ username }}</td>
+                <td><a href="{{url_for('blueprint.grant_priv_user_detail', grantor=grantor, grantee=username)}}">Detail</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}

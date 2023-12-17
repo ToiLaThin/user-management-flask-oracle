@@ -4,7 +4,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
 {% endblock %}
 {% block content_side_nav %}
-    {% include 'snav_admin.html' %}
+    {% if auth_manager.is_dba %}
+        {% include 'snav_admin.html' %}
+    {% else %}
+        {% include 'snav_user.html' %}
+    {% endif %}    
 {% endblock %}
 {% block content_main %}
     <button>

@@ -1,0 +1,120 @@
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <style>
+        .row {
+            margin-top: var(--m-2);
+        }
+        /* override styling in form.css */
+        button[type="submit"] {
+            padding: var(--p-1) var(--p-1);
+            width: 60%;
+        }
+
+    </style>
+{% endblock %}
+{% block content_side_nav %}
+    {% include "snav_user.html"%}
+{% endblock %}
+{% block content_main %}
+    <h1>Account Role: {{account_role_list}}</h1>
+    <div class="row">
+        <h2>Account Role Privs</h2>
+        <table>
+            <tr>
+                <th>Privilege</th>
+            </tr>
+            {% for account_role_priv in account_role_privs_list %}
+                <tr>
+                    <td>{{account_role_priv}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="row">
+        <h2>Account Privs Without Role</h2>
+        <table>
+            <tr>
+                <th>Privilege</th>
+            </tr>
+            {% for account_priv_without_role in account_privs_without_role_list %}
+                <tr>
+                    <td>{{account_priv_without_role}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="row">
+        <h2>Privs For Current Session</h2>
+        <table>
+            <tr>
+                <th>Privilege</th>
+            </tr>
+            {% for session_priv in session_privs_list %}
+                <tr>
+                    <td>{{session_priv}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <div class="d-flex flex-row">
+            {% if role_is_enabled %}
+                <form method="POST" action="{{url_for('blueprint.disable_session_role')}}">
+                    <div class="form-group">
+                        <span style="color: var(--clr-primary-green);"><b>Role is enabled</b></span>
+                        <button class="apply-btn" type="submit">Set Role None</button>
+                    </div>
+                </form>
+            {% else %}
+                <form method="POST" 
+                    {% if role_have_password == False %}
+                      action="{{url_for('blueprint.enable_session_role')}}"
+                    {% else %}
+                      action="{{url_for('blueprint.enable_session_role_with_password')}}"
+                    {% endif %}
+                >
+                    <div class="form-group">
+                        <span style="color: var(--clr-primary-red);"><b>Role is disabled</b></span><br>
+                        {% set role = account_role_list[0] %}
+                        {% if role_have_password == False %}
+                            <span style="color: var(--clr-primary-green)">Role {{role}} does not have a password</span>
+                        {% else %}
+                            <span style="color: var(--clr-primary-red)">Role {{role}}  have a password. Please input password to set role</span>
+                            <label for="password">Role Password:</label>
+                            <input type="password" 
+                                   name="password" 
+                                   placeholder="Role Password"
+                                   required
+                            >
+                        {% endif %}
+                        <input type="hidden" name="role" value="{{role}}">
+                        <button class="apply-btn" type="submit">Set Role {{role}}</button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <h1>Profile: {{profile_name}}</h1>
+    <div class="row">
+        <table>
+            <tr>
+                <th>Resource name</th>
+                <th>Limit value</th>
+            </tr>
+            {% for key, value in profile_info_dict.items() %}
+                <tr>
+                    <td>{{key}}</td>
+                    <td>{{value}}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <h1>Tablespace: {{tbs_name}} - Quota: {{tbs_quota}} bytes</h1>
+
+{% endblock %}
+{% block scripts %}
+    {{ super() }}    
+{% endblock %}
