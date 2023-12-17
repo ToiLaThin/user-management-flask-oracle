@@ -1,0 +1,23 @@
+{% extends 'base_with_snav.html' %}    
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+{% endblock %}
+{% block content_side_nav%}
+    {% include 'snav_admin.html' %}
+{% endblock %}
+{% block content_main %}
+    <h1>All Roles</h1>
+    <table>
+        <tr>
+            <th>Role</th>
+            <th>Action</th>
+        </tr>
+        {% for role in roles_list %}
+            <tr>
+                <td>{{ role }}</td>
+                <td><a href="{{ url_for('blueprint.get_role_info', selected_role=role) }}">View</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

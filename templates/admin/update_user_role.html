@@ -1,0 +1,45 @@
+{% extends "base_with_snav.html" %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <style>
+        .form-group {
+            margin: 10px 0;
+            width: 60%;
+            padding: 5px;
+        }
+        button[type="submit"] {
+            width: 60%;
+        }
+    </style>
+{% endblock %}
+{% block content_side_nav %}
+    {% include "snav_admin.html" %}
+{% endblock %}
+{% block content_main %}
+    User: {{ username }}
+    <form action="{{ url_for('blueprint.update_user_role') }}" method="POST">
+        <input type="hidden" name="username" value="{{ username }}">
+        <input type="hidden" name="current_role" value="{{ current_role }}">
+        <div class="form-group">
+            <label for="selected_role">Current role:</label>
+            <select name="selected_role" id="role">
+                {% for role in all_roles_list %}
+                    <option 
+                        value="{{ role }}"
+                        {% if role == current_role %}
+                        selected
+                        {% endif %}
+                    >
+                        {{ role }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit"
+                class="apply-btn"
+        >
+            Update Role
+        </button>
+    </form>
+{% endblock %}

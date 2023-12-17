@@ -44,9 +44,15 @@
             <td>{{user_info_orcl.profile}}</td>
             <td>{{user_info_orcl.granted_role}}</td>
             <td>{{user_info_orcl.admin_option}}</td>
-            <td><a href="{{ url_for('blueprint.delete_account', username=user_info_orcl.username) }}">
-                <i class="fas fa-trash"></i> - Delete
-            </a></td>
+            <td>
+                <a href="{{ url_for('blueprint.delete_account', username=user_info_orcl.username) }}">
+                    <i class="fas fa-trash"></i> - Delete
+                </a>
+                <br>
+                <a href="{{ url_for('blueprint.update_user_role', username=user_info_orcl.username, role=user_info_orcl.granted_role) }}">
+                    <i class="fas fa-edit"></i> - Change role
+                </a>
+            </td>
         </tr>
         <br>
     {% endfor %}

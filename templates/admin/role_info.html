@@ -1,0 +1,163 @@
+{% extends 'base_with_snav.html' %}    
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/accordion.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <style>
+        .row { display: flex; }
+        .column { flex: 50%; padding: 10px; }
+        .apply-btn {             
+            width: 100%; 
+            padding: var(--p-2) 20px; 
+            background-color: var(--clr-primary-blue);
+            color: var(--clr-primary-light);
+            cursor: pointer; 
+            opacity: 0.9; 
+            transition: 0.3s;
+        }
+        .apply-btn:hover { opacity: 1; }
+        h3, h2 { font-weight: bold; }
+    </style>
+{% endblock %}
+{% block content_side_nav%}
+    {% include 'snav_admin.html' %}
+{% endblock %}
+{% block content_main %}
+    <h2>Role {{ role }} Privileges</h2>
+    <div class="row">
+        <div class="column">
+            <h3>Tab Privs</h3>
+            {% for role_tab_priv in all_tab_privs %}
+                <div>
+                    <span class="tab_priv">{{ role_tab_priv }}</span>
+                    <input type="checkbox" 
+                            value="{{ role_tab_priv }}" 
+                            class="priv"
+                            {% if role_tab_priv in role_tab_privs_granted_list %}checked{% endif %}
+                            onchange="handleCheckboxChange(this)"
+                    >
+                    </input>
+                </div>
+            {% endfor %}                
+        </div>
+        <div class="column">
+            <h3>Sys Privs</h3>
+            {% for role_sys_priv in all_sys_privs %}
+                <div>
+                    <span class="sys_priv">{{ role_sys_priv }}</span>
+                    <input type="checkbox" 
+                            value="{{ role_sys_priv }}" 
+                            class="priv"
+                            {% if role_sys_priv in role_sys_privs_granted_list %}checked{% endif %}
+                            onchange="handleCheckboxChange(this)"
+                    >
+                    </input>
+                </div>
+            {% endfor %}   
+        </div> 
+    </div>       
+    <div style="width: 80%; margin:auto; margin-top: var(--m-2);">
+        <button class="apply-btn" onclick="handleFormSubmit()" >Update</button>
+    </div>
+    <br>
+    <br>
+    {% if role_have_password == False %}
+        <h3 style="color: var(--clr-primary-green);">Role does not have password</h3>
+    {% else %}
+        <h3 style="color: var(--clr-primary-red);">Role already have password</h3>
+    {% endif %}
+    <div class="row">
+        <form method="POST" 
+            {% if role_have_password == False %}
+              action="{{url_for('blueprint.enable_role_pwd')}}"
+            {% else %}
+              action="{{url_for('blueprint.disable_or_update_role_pwd')}}"
+            {% endif %}
+        >
+            <input type="hidden" name="role" value="{{ role }}">
+            <div class="form-group">
+                <label for="password">Password: </label>
+                <input type="password" 
+                    name="password" 
+                    placeholder="Enter Password" 
+                    {% if role_have_password == False %}
+                    required
+                    {% endif %}
+                >
+            </div>
+            <button type="submit" class="apply-btn">
+                {% if role_have_password == False %}
+                    Enable
+                {% else %}
+                    Disable or Update
+                {% endif %}
+            </button>
+        </form>
+    </div>
+    <br>
+    <br>
+    <h2>Users with Role</h2>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Actions</th>
+        </tr>
+        {% for username in users_with_role_list %}
+            <tr>
+                <td>{{ username }}</td>
+                <td>
+                    <a href="{{ url_for('blueprint.update_user_role', username=username, role=role) }}">
+                        <i class="fas fa-edit"></i> - Change role
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // privileges to grant are checked checkboxes value
+        // map only for array, so we convert the NodeList to array using spread operator
+        var privilegesToGrant = [...document.querySelectorAll('.priv:checked')].map(
+            function (checkbox) {
+                return checkbox.value;
+            }
+        );
+
+        function handleCheckboxChange(checkbox) {
+            var privilegeName = checkbox.value;
+
+            if (checkbox.checked) {
+                privilegesToGrant.push(privilegeName);
+            } else {
+                if (privilegesToGrant.includes(privilegeName)) {
+                    privilegesToGrant.splice(privilegesToGrant.indexOf(privilegeName), 1);
+                }
+            }
+
+            checkbox.setAttribute('data-checked', checkbox.checked);
+        }
+
+        function handleFormSubmit() {
+
+            privilegesToGrant.forEach(function (privilegeName) {
+                console.log('Granting privilege:', privilegeName);
+            });
+            fetch('http://localhost:5000/update_privs_role', {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    role: "{{ role }}",
+                    privileges: privilegesToGrant
+                })
+            }).then(
+                function (response) { alert("Privs Updated"); }
+            );
+        }
+    </script>
+{% endblock %}

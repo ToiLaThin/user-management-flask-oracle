@@ -1,19 +1,19 @@
 <nav class="snav">
     <ul>
         <li>
-            <a href="{{ url_for('blueprint.user_account_list') }}">Home | Users</a>
+            <a href="{{ url_for('blueprint.list_users') }}">Home | Users</a>
         </li>
         <li>
             <a href="{{ url_for('blueprint.list_profiles') }}">Profiles</a>
         </li>
         <li>
-            <a href="index.php?page=contact">Roles</a>
+            <a href="{{ url_for('blueprint.get_all_roles') }}">Roles</a>
         </li>
         <!-- <li>
             <a href="{{ url_for('blueprint.grant_privs_user_list') }}">Privs</a>
         </li> -->
         <li>
-            <a href="{{ url_for('blueprint.list_users') }}">Company</a>
+            <a href="{{ url_for('blueprint.user_account_list') }}">Company</a>
         </li>
     </ul>
 </nav>

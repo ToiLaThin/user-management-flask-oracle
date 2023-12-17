@@ -1,5 +1,5 @@
 from enum import Enum
-from flask import redirect, url_for, flash
+from flask import redirect, render_template, url_for, flash
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 from database.oracle_db import OracleDb
@@ -101,8 +101,10 @@ def authorization_check_decorator(role_names:list):
                 if role in role_names:
                     return func(*args, **kwargs)
             else:
-                flash("Logout user to login with another account with role have access control", 'warning')
-                return redirect(url_for('blueprint.logout'))
+                return render_template('/user/page_404.html'\
+                                       , continue_url=url_for('blueprint.index')\
+                                       , error="Access control failed, user does not have privileges to access this page"
+                                    )
         return wrapper
             
         
