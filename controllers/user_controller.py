@@ -7,12 +7,9 @@ from services.user_service import check_user_not_exist as srv_check_user_not_exi
 from services.user_service import add_user as srv_add_user
 from utils.globals import authentication_check_decorator, authorization_check_decorator,\
             singleton_auth_manager, \
-            DBA_ROLE_NAME, MANAGER_ROLE_NAME, EMPLOYEE_ROLE_NAME, \
+            MANAGER_ROLE_NAME, EMPLOYEE_ROLE_NAME, \
             HASHED_METHOD
-from utils.queries import SET_SESSION_CONTAINER_QUERY, \
-            SELECT_USER_ROLE_QUERY, \
-            SELECT_DBA_TABLESPACES_QUERY, \
-            SELECT_DBA_PROFILES_QUERY
+from utils.queries import SELECT_USER_ROLE_QUERY
 from werkzeug.security import generate_password_hash
 
 def index():
@@ -356,54 +353,41 @@ def grant_priv_user_update():
     we must use the conn in singleton_auth_manager.db_instance.conn)
     """
     username = request.json['username'] # this username already has U_ prefix
-    username = username[2:]
+    username:str = username[2:]
     all_checked_privs = request.json['all_checked_privs']
     all_checked_privs_with_grant_option = request.json['all_checked_privs_with_grant_option']
     print(all_checked_privs)
     print(all_checked_privs_with_grant_option)
 
-    grant_all_privs_query = f"GRANT ALL PRIVILEGES TO U_{username.upper()}"
-    revoke_all_privs_query = f"REVOKE ALL PRIVILEGES FROM U_{username.upper()}"
-    grant_priv_query = """GRANT {priv} TO U_{username}"""
+    from utils.queries import GRANT_ALL_PRIVS_TO_USER_QUERY, REVOKE_ALL_PRIVS_FR_USER_QUERY, GRANT_PRIV_TO_USER_QUERY
+    from utils.globals import ALL_SYS_PRIVS
     with OracleDb('sys', '123') as db: # This to avoid current logged in user not have enough privs to grant all privs
-        db.conn.execute(text(grant_all_privs_query)) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
-        db.conn.execute(text(revoke_all_privs_query))
+        db.conn.execute(text(GRANT_ALL_PRIVS_TO_USER_QUERY.format(username=username.upper()))) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
+        db.conn.execute(text(REVOKE_ALL_PRIVS_FR_USER_QUERY.format(
+            username=username.upper()
+        )))
         db.conn.commit()   
-
-    all_sys_privs = [
-                'CREATE PROFILE', 'ALTER PROFILE', 'DROP PROFILE',\
-                'CREATE USER', 'ALTER USER', 'DROP USER',\
-                'CREATE SESSION',\
-                'CREATE ROLE', 'ALTER ANY ROLE', 'DROP ANY ROLE', 'GRANT ANY ROLE'\
-                'CREATE ANY TABLE', 'ALTER ANY TABLE', 'DROP ANY TABLE', 'CREATE TABLE'\
-                'SELECT ANY TABLE', 'DELETE ANY TABLE', 'INSERT ANY TABLE', 'UPDATE ANY TABLE'
-            ]
-    from utils.globals import TEST_TABLE_NAME
-    all_tab_privs = [
-        f'SELECT ON {TEST_TABLE_NAME}', f'DELETE ON {TEST_TABLE_NAME}',\
-        f'INSERT ON {TEST_TABLE_NAME}', f'UPDATE ON {TEST_TABLE_NAME}'
-    ]
     for priv in all_checked_privs:
         if priv in all_checked_privs_with_grant_option:
-            if priv in all_sys_privs:
+            if priv in ALL_SYS_PRIVS:
                 # to remove admin option from sys privs, we need to revoke it first, then grant it again
-                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH ADMIN OPTION"
+                grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper()) + " WITH ADMIN OPTION"
             else:
-                grant_query = grant_priv_query.format(priv=priv, username=username.upper()) + " WITH GRANT OPTION"
+                grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper()) + " WITH GRANT OPTION"
         else:
-            grant_query = grant_priv_query.format(priv=priv, username=username.upper())
+            grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper())
         print(grant_query)
         singleton_auth_manager.db_instance.conn.execute(text(grant_query))
         singleton_auth_manager.db_instance.conn.commit()
     flash(f"Grant privs to user {username} successfully.", "success")
     return redirect(url_for('blueprint.index'), code=301) # 301 is for redirect permanently'))
 
+from utils.queries import DISABLE_ROLE_QUERY, ENABLE_ROLE_QUERY, ENABLE_ROLE_WITH_PASSWORD_QUERY
 @authentication_check_decorator
 def disable_session_role():
     """Disable a session role."""
-    disable_role_query = f"SET ROLE NONE"
     with singleton_auth_manager.db_instance.engine.connect() as conn:
-        conn.execute(text(disable_role_query))
+        conn.execute(text(DISABLE_ROLE_QUERY))
         conn.commit()
     print("Role set None")
     return redirect(url_for('blueprint.get_account_infos'), code=301)
@@ -413,9 +397,10 @@ def enable_session_role():
     """Enable a session role."""
     role = request.form.get('role')    
     print("Role:", role)
-    enable_role_query = f"SET ROLE {role}"
     with singleton_auth_manager.db_instance.engine.connect() as conn:
-        conn.execute(text(enable_role_query))
+        conn.execute(text(ENABLE_ROLE_QUERY.format(
+            role=role
+        )))
         conn.commit()
     return redirect(url_for('blueprint.get_account_infos'), code=301)
 
@@ -424,10 +409,12 @@ def enable_session_role_with_password():
     """Enable a session role with password."""
     role = request.form.get('role')
     password = request.form.get('password')
-    enable_role_query = f"SET ROLE {role} IDENTIFIED BY {password}"
     with singleton_auth_manager.db_instance.engine.connect() as conn:
         try:
-            conn.execute(text(enable_role_query))
+            conn.execute(text(ENABLE_ROLE_WITH_PASSWORD_QUERY.format(
+                role=role, 
+                password=password
+            )))
             conn.commit()
         except Exception as e:
             return render_template('/user/page_404.html', error=str(e), continue_url=url_for('blueprint.index'))
