@@ -80,41 +80,10 @@ def delete_account(username: str):
 @authentication_check_decorator
 @authorization_check_decorator([DBA_ROLE_NAME])
 def list_users():
-    """List all user accounts."""
-    with singleton_auth_manager.db_instance.engine.connect():
-        # every time we reload the app, 
-        # the user lost the role granted by admin, 
-        # so next time this won't show any users, find how to fix this
-        query = """
-            SELECT USERNAME, ACCOUNT_STATUS, LOCK_DATE, CREATED, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE, PROFILE
-                , GRANTED_ROLE, ADMIN_OPTION
-            FROM DBA_USERS dba_u 
-            JOIN DBA_ROLE_PRIVS dba_r 
-            ON dba_u.USERNAME = dba_r.GRANTEE
-            WHERE REGEXP_LIKE (USERNAME ,'^U_.*$')
-        """
-        df_users = pd.read_sql_query(text(query), singleton_auth_manager.db_instance.engine)
-        # print(df_users)
-        df_users['granted_role'] = df_users['granted_role'].groupby(df_users['username']).transform(lambda x: ','.join(x))
-        df_users.drop_duplicates(subset=['username'], inplace=True) # 2 row is the same, since the above query modify the granted_role column
-        
-        user_info_orcl_list = []
-        from utils.globals import UserInfoOracle
-        for _, row in df_users.iterrows():
-            username = row['username']
-            account_status = row['account_status']
-            lock_date = row['lock_date']
-            created = row['created']
-            default_tablespace = row['default_tablespace']
-            temporary_tablespace = row['temporary_tablespace']
-            profile = row['profile']
-            granted_role = row['granted_role']
-            admin_option = row['admin_option']
-
-            user_info_orcl = UserInfoOracle(username, account_status, lock_date, created, default_tablespace, temporary_tablespace, profile, granted_role, admin_option)
-            user_info_orcl_list.append(user_info_orcl)
-        print(user_info_orcl_list)
-        return render_template('admin/user_list.html', user_info_orcl_list=user_info_orcl_list)
+    from services.dba_service import list_users as srv_list_users
+    user_info_orcl_list = srv_list_users()
+    print(user_info_orcl_list)
+    return render_template('admin/user_list.html', user_info_orcl_list=user_info_orcl_list)
     
 @authentication_check_decorator
 @authorization_check_decorator([DBA_ROLE_NAME])
@@ -227,26 +196,9 @@ def update_privs_user():
     userrole = request.json['userrole']
     account_status = request.json['account_status']
 
-    from utils.queries import GRANT_ALL_PRIVS_TO_USER_QUERY, REVOKE_ALL_PRIVS_FR_USER_QUERY, GRANT_PRIV_TO_USER_QUERY
-    singleton_auth_manager.db_instance.conn.execute(text(GRANT_ALL_PRIVS_TO_USER_QUERY.format(
-        username=username.upper()
-    ))) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
-    singleton_auth_manager.db_instance.conn.execute(text(REVOKE_ALL_PRIVS_FR_USER_QUERY.format(
-        username=username.upper()
-    )))
+    from services.dba_service import update_privs_user as srv_update_privs_user
+    srv_update_privs_user(username, all_checked_privs, all_checked_privs_with_grant_option)
 
-    from utils.globals import ALL_SYS_PRIVS
-    for priv in all_checked_privs:
-        if priv in all_checked_privs_with_grant_option:
-            if priv in ALL_SYS_PRIVS:
-                # to remove admin option from sys privs, we need to revoke it first, then grant it again
-                grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper()) + " WITH ADMIN OPTION"
-            else:
-                grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper()) + " WITH GRANT OPTION"
-        else:
-            grant_query = GRANT_PRIV_TO_USER_QUERY.format(priv=priv, username=username.upper())
-        print(grant_query)
-        singleton_auth_manager.db_instance.conn.execute(text(grant_query))
     return redirect(
         url_for('blueprint.detail_user', 
                 username=username, 
@@ -259,17 +211,10 @@ def update_privs_user():
 @authorization_check_decorator([DBA_ROLE_NAME])
 def lock_unlock_user(astatus: str, username: str):
     """Lock or unlock a user account."""
-    from utils.queries import LOCK_USER_QUERY, UNLOCK_USER_QUERY
+    print(astatus, username)
     username = username[2:] # remove U_ prefix
-    if astatus == AccountStatusEnum.LOCKED.value:
-        print("Locked. Unlocking user account")
-        query = UNLOCK_USER_QUERY.format(username=username)
-    else:
-        print("UnLocked. Locking user account")
-        query = LOCK_USER_QUERY.format(username=username)
-    with singleton_auth_manager.db_instance.engine.connect():
-        singleton_auth_manager.db_instance.conn.execute(text(SET_SESSION_CONTAINER_QUERY))
-        singleton_auth_manager.db_instance.conn.execute(text(query))
+    from services.dba_service import lock_unlock_user as srv_lock_unlock_user
+    srv_lock_unlock_user(astatus, username)    
     return redirect(url_for('blueprint.list_users'))
 
 
@@ -440,20 +385,8 @@ def update_privs_role():
     role = role[2:]
     privileges_to_grant = request.json['privileges']
     print(privileges_to_grant)
-
-    from utils.queries import GRANT_ALL_PRIVS_TO_ROLE_QUERY, REVOKE_ALL_PRIVS_FR_ROLE_QUERY, GRANT_PRIV_TO_ROLE_QUERY
-    singleton_auth_manager.db_instance.conn.execute(text(GRANT_ALL_PRIVS_TO_ROLE_QUERY.format(
-        role=role.upper()
-    ))) # to avoid err: ORA-01952: system privileges not granted to 'U_THINH'
-    singleton_auth_manager.db_instance.conn.execute(text(REVOKE_ALL_PRIVS_FR_ROLE_QUERY.format(
-        role=role.upper()
-    )))
-
-    for priv in privileges_to_grant:
-        singleton_auth_manager.db_instance.conn.execute(text(GRANT_PRIV_TO_ROLE_QUERY.format(
-            priv=priv,
-            role=role.upper()
-        )))
+    from services.dba_service import update_privs_role as srv_update_privs_role
+    srv_update_privs_role(role, privileges_to_grant)
 
     return redirect(
         url_for('blueprint.get_role_info', 
